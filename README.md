@@ -2,6 +2,8 @@
 
 [ [中文](./README.zh-cn.md) | [English](./README.md) ]
 
+![](images/20240414114221.png)
+
 Fxd stands for "Flow eXtension Define" and is a specification designed for extending workflows, especially AI and automation workflows.
 
 For example, if you need to monitor the latest articles from an RSS feed, translate them into Chinese, create illustrations for them, and then publish them on your own platform, this task isn't difficult for AI, but due to the multiple steps involved, few tools can automate the entire process.

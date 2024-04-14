@@ -3,6 +3,8 @@ Fxd是什么
 
 [ [中文](./README.zh-cn.md) | [English](./README.md) ]
 
+![](images/20240414114221.png)
+
 Fxd 是 Flow eXtension Define 的缩写，它是一个被设计用于工作流（尤其是AI和自动化工作流）扩展的规范。
 
 [FXD官方手册](https://ft07.com/fxd/)
