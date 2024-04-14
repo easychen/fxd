@@ -1,0 +1,182 @@
+{
+  "name": "fxd-app-keep-live2",
+  "version": "1.0.3",
+  "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "meta": {
+    "args": {
+      "main|auth|check|refresh": {
+        "user": {
+          "name": "user",
+          "cn_name": "浏览器用户",
+          "description": "浏览器使用的用户目录",
+          "type": "string",
+          "default": "default",
+          "example": "admin"
+        },
+        "timeout": {
+          "name": "timeout",
+          "cn_name": "加载超时时间",
+          "description": "状态检测页面加载超时时间，单位毫秒",
+          "type": "number",
+          "default": 5000,
+          "example": 8000
+        },
+        "headless": {
+          "name": "headless",
+          "cn_name": "后台模式",
+          "description": "是否使用后台模式",
+          "type": "boolean",
+          "default": true,
+          "example": false
+        },
+        "format": {
+          "name": "format",
+          "cn_name": "返回格式",
+          "description": "返回的数据格式",
+          "type": "string",
+          "default": "text",
+          "example": "json",
+          "enum": [
+            "json",
+            "text"
+          ]
+        },
+        "browser": {
+          "name": "browser",
+          "description": "浏览器类型",
+          "type": "string",
+          "default": "chrome",
+          "example": "chrome",
+          "enum": [
+            "chrome",
+            "firefox",
+            "webkit"
+          ]
+        }
+      },
+      "auth": {
+        "auth_url": {
+          "name": "auth_url",
+          "cn_name": "登录页面URL",
+          "description": "登录页面URL，用于前台打开给用户手动登录",
+          "type": "string",
+          "example": "https://passport.weibo.cn/signin/login"
+        }
+      },
+      "check": {
+        "check_url": {
+          "name": "check_url",
+          "cn_name": "状态检测页面URL",
+          "description": "状态检测页面URL，设置后会检测页面状态是否过期",
+          "type": "string",
+          "example": "https://m.weibo.cn"
+        },
+        "check_selector": {
+          "name": "check_selector",
+          "cn_name": "待检测元素selector",
+          "description": "状态检测页面待检测元素的selector",
+          "type": "string",
+          "default": "body",
+          "example": "div.lite-iconf-msg"
+        },
+        "check_text": {
+          "name": "check_text",
+          "cn_name": "待检测元素包含文本",
+          "description": "状态检测页面待检测元素应该包含的文本，如果为空，则只判断元素是否存在",
+          "type": "string",
+          "example": "OK"
+        }
+      },
+      "refresh": {
+        "refresh_url": {
+          "name": "refresh_url",
+          "cn_name": "刷新页面URL",
+          "description": "刷新页面URL，设置后每次运行命令时会刷新一次，用来维护状态",
+          "type": "string",
+          "example": "https://m.weibo.cn"
+        }
+      }
+    },
+    "output": {
+      "main|auth|check|refresh": {
+        "success": {
+          "action": {
+            "name": "action",
+            "type": "string",
+            "description": "执行的动作类型",
+            "example": "auth"
+          },
+          "message": {
+            "name": "message",
+            "type": "string",
+            "description": "执行结果消息",
+            "example": "done"
+          },
+          "output": {
+            "name": "output",
+            "type": "string",
+            "description": "额外的输出信息",
+            "example": "authed manually"
+          },
+          "url": {
+            "name": "url",
+            "type": "string",
+            "description": "访问的URL",
+            "example": "https://m.weibo.cn",
+            "required": false
+          },
+          "selector": {
+            "name": "selector",
+            "type": "string",
+            "description": "使用的选择器",
+            "example": "div.lite-iconf-msg",
+            "required": false
+          },
+          "text": {
+            "name": "text",
+            "type": "string",
+            "description": "选择器中应包含的文本",
+            "example": "OK",
+            "required": false
+          },
+          "count": {
+            "name": "count",
+            "type": "number",
+            "description": "找到的选择器数量",
+            "example": 1,
+            "required": false
+          },
+          "selectedText": {
+            "name": "selectedText",
+            "type": "string",
+            "description": "选择器中的文本内容",
+            "example": "Your content here",
+            "required": false
+          },
+          "ret": {
+            "name": "ret",
+            "type": "boolean",
+            "description": "检查结果",
+            "example": true,
+            "required": false
+          }
+        },
+        "fail": {
+          "error": {
+            "name": "error",
+            "type": "string",
+            "description": "错误信息",
+            "example": "页面加载失败"
+          }
+        }
+      }
+    }    
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "fxd-app-browser": "^1.0.8",
+    "fxd-sdk": "^1.0.59"
+  }
+}

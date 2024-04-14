@@ -1,0 +1,67 @@
+{
+  "name": "fxd-app-weibo-live",
+  "description": "刷新微博页面，保持登录态",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "meta": {
+    "for": "fxd",
+    "author_uid": 1,
+    "args": {
+      "main|auth|check|refresh": {
+        "user": {
+          "name": "user",
+          "cn_name": "浏览器用户",
+          "description": "浏览器使用的用户目录",
+          "type": "string",
+          "default": "default",
+          "example": "admin"
+        },
+        "timeout": {
+          "name": "timeout",
+          "cn_name": "加载超时时间",
+          "description": "状态检测页面加载超时时间，单位毫秒",
+          "type": "number",
+          "default": 5000,
+          "example": 8000
+        },
+        "headless": {
+          "name": "headless",
+          "cn_name": "后台模式",
+          "description": "是否使用后台模式",
+          "type": "boolean",
+          "default": true,
+          "example": false
+        },
+        "format": {
+          "name": "format",
+          "cn_name": "返回格式",
+          "description": "返回的数据格式",
+          "type": "string",
+          "default": "text",
+          "example": "json",
+          "enum": [
+            "json",
+            "text"
+          ]
+        },
+        "browser": {
+          "name": "browser",
+          "description": "浏览器类型",
+          "type": "string",
+          "default": "chrome",
+          "example": "chrome",
+          "enum": [
+            "chrome",
+            "firefox",
+            "webkit"
+          ]
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "fxd-app-keep-live2": "^1.0.2"
+  }
+}

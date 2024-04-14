@@ -1,0 +1,24 @@
+{
+  "name": "fxd-app-douyin-count",
+  "displayName": "抖音作品数监测",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "meta": {
+    "args": {
+      "main": {
+        "url": {
+          "name": "url",
+          "description": "抖音账号页面URL",
+          "type": "string",
+          "required": true,
+          "example": "https://www.douyin.com/user/..."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "fxd-app-check-chan": "^1.0.25"
+  }
+}

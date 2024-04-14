@@ -1,0 +1,146 @@
+{
+  "name": "fxd-app-search",
+  "version": "1.0.7",
+  "main": "index.js",
+  "license": "MIT",
+  "type": "module",
+  "meta": {
+    "for": "fxd",
+    "author_uid": 1,
+    "args": {
+      "main": {
+        "query": {
+          "name": "query",
+          "description": "要搜索的关键词",
+          "type": "string",
+          "required": true
+        },
+        "sites": {
+          "name": "sites",
+          "description": "如果传入，则只搜索匹配站点的内容。多个域名用,分隔",
+          "type": "string",
+          "required": false,
+          "example": "ftqq.com"
+        },
+        "format": {
+          "name": "format",
+          "description": "返回数据格式",
+          "type": "string",
+          "required": false,
+          "default": "text",
+          "example": "json"
+        },
+        "timeout": {
+          "name": "timeout",
+          "description": "超时时间",
+          "type": "number",
+          "required": false,
+          "default": 60000,
+          "example": 5000
+        },
+        "headless": {
+          "name": "headless",
+          "description": "是否启用后台模式",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "example": true
+        },
+        "user": {
+          "name": "user",
+          "description": "用户名",
+          "type": "string",
+          "required": false,
+          "default": "default",
+          "example": "username"
+        },
+        "wait_type": {
+          "name": "wait_type",
+          "description": "等待类型",
+          "type": "string",
+          "required": false,
+          "default": "domcontentloaded",
+          "example": "domcontentloaded",
+          "enum": [
+            "load",
+            "domcontentloaded",
+            "networkidle"
+          ]
+        },
+        "result_limit": {
+          "name": "result_limit",
+          "description": "结果数量限制",
+          "type": "number",
+          "required": false,
+          "default": 3,
+          "example": 10
+        },
+        "result_extend": {
+          "name": "result_extend",
+          "description": "是否返回额外信息",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "example": true
+        },
+        "result_length": {
+          "name": "result_length",
+          "description": "每一条结果的Markdown长度限制",
+          "type": "number",
+          "required": false,
+          "default": 2000,
+          "example": 1000
+        }
+      }
+    },
+    "output": {
+      "main": {
+        "success": {
+          "results": {
+            "name": "results",
+            "type": "array",
+            "description": "搜索结果数组",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "name": "title",
+                  "type": "string",
+                  "description": "结果标题"
+                },
+                "link": {
+                  "name": "link",
+                  "type": "string",
+                  "description": "结果链接"
+                },
+                "snippet": {
+                  "name": "snippet",
+                  "type": "string",
+                  "description": "结果摘要"
+                },
+                "markdown": {
+                  "name": "markdown",
+                  "type": "string",
+                  "description": "结果Markdown内容，只有在result_extend为true时返回"
+                }
+              }
+            }
+          }
+        },
+        "fail": {
+          "error": {
+            "name": "error",
+            "type": "string",
+            "description": "错误信息",
+            "example": "搜索过程中发生错误"
+          }
+        }
+      }
+    }    
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.5.0",
+    "jsdom": "^24.0.0",
+    "turndown": "^7.1.2"
+  }
+}

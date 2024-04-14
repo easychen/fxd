@@ -1,0 +1,90 @@
+{
+  "name": "fxd-app-rss-fetch",
+  "description": "解析RSS并返回是否有更新",
+  "version": "1.0.4",
+  "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "meta": {
+    "for": "fxd",
+    "author_uid": 0,
+    "args": {
+      "main": {
+        "url": {
+          "name": "url",
+          "description": "RSS Feed URL",
+          "type": "string",
+          "required": true,
+          "default": "https://ft07.com/feed",
+          "example": "https://ft07.com/feed"
+        },
+        "only_changed": {
+          "name": "only_changed",
+          "cn_name": "只看最新",
+          "description": "仅返回新的entries",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "example": true
+        },
+        "sendkey": {
+          "name": "sendkey",
+          "description": "Server酱的sendkey，填写后检查到新entries会推送",
+          "type": "string",
+          "required": false,
+          "example": "SCT123456"
+        },
+        "timeout": {
+          "name": "timeout",
+          "description": "超时时间(毫秒)",
+          "type": "number",
+          "required": false,
+          "default": 10000,
+          "example": 10000
+        },
+        "proxy": {
+          "name": "proxy",
+          "description": "代理地址",
+          "type": "string",
+          "required": false,
+          "example": "http://127.0.0.1:8001"
+        },
+        "format": {
+          "name": "format",
+          "description": "返回数据格式",
+          "type": "string",
+          "required": false,
+          "default": "json",
+          "example": "json"
+        }
+      }
+    },
+    "output": {
+      "main": {
+        "success": {
+          "feed": {
+            "name": "feed",
+            "description": "feed的相关信息"
+          },
+          "output": {
+            "name": "output",
+            "description": "任务页面的信息"
+          }
+        }
+      },
+      "fail": {
+        "error": {
+          "name": "error",
+          "type": "string",
+          "description": "错误信息",
+          "example": "搜索过程中发生错误"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@extractus/feed-extractor": "^7.1.0",
+    "dayjs": "^1.11.10",
+    "https-proxy-agent": "^7.0.4"
+  }
+}

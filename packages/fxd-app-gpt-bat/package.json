@@ -1,0 +1,98 @@
+{
+  "name": "fxd-app-gpt-bat",
+  "description": "长文本批处理",
+  "version": "1.0.2",
+  "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "meta": {
+    "for": "fxd",
+    "author_uid": 0,
+    "args": {
+      "main|file": {
+        "char_count": {
+          "name": "char_count",
+          "type": "number",
+          "description": "每次处理的字符数",
+          "default": 1000,
+          "example": 1000
+        },
+        "prompt": {
+          "name": "prompt",
+          "type": "string",
+          "description": "提示词",
+          "required": true,
+          "example": "请翻译一下内容{{{content}}}"
+        },
+        "ai_key": {
+          "name": "ai_key",
+          "type": "string",
+          "description": "AI密钥",
+          "example": "123456"
+        },
+        "ai_apibase": {
+          "name": "ai_apibase",
+          "type": "string",
+          "description": "AI接口地址",
+          "example": "http://oa.api2d.net"
+        },
+        "ai_model": {
+          "name": "ai_model",
+          "type": "string",
+          "description": "AI模型",
+          "example": "gpt-3.5-turbo"
+        },
+        "format": {
+          "name": "format",
+          "type": "string",
+          "description": "返回结果格式",
+          "default": "json",
+          "example": "json"
+        }
+      },
+      "main":
+      {
+        "content": {
+          "name": "content",
+          "type": "string",
+          "required": true,
+          "description": "待处理的长文本",
+          "example": "这是一段文本",
+          "ui": "textarea"
+        }
+      },
+      "file":
+      {
+        "file_path":
+        {
+          "name": "file_path",
+          "type": "string",
+          "required": true,
+          "description": "待处理的文件路径",
+          "example": "/tmp/test.txt"
+        }
+      }
+    },
+    "output": {
+      "main": {
+        "success": {
+          "result": {
+            "name": "result",
+            "description": "返回结果"
+          }
+        }
+      },
+      "fail": {
+        "error": {
+          "name": "error",
+          "type": "string",
+          "description": "错误信息",
+          "example": "搜索过程中发生错误"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "api2d": "^0.1.40"
+  }
+}

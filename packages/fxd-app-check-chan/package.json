@@ -1,0 +1,216 @@
+{
+  "name": "fxd-app-check-chan",
+  "displayName": "CheckChan",
+  "version": "1.0.26",
+  "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "dependencies": {
+    "@playwright/browser-chromium": "^1.41.2",
+    "fxd-app-browser": "^1.0.8",
+    "fxd-app-core": "^1.0.42",
+    "fxd-sdk": "^1.0.59",
+    "json-diff": "^1.0.6",
+    "playwright": "^1.41.2"
+  },
+  "meta": {
+    "for": "fxd",
+    "author_uid": 1,
+    "args": {
+      "main|check|watch": {
+        "url": {
+          "name": "url",
+          "description": "要打开的页面 URL",
+          "type": "string",
+          "required": true,
+          "example": "https://www.example.com"
+        },
+        "headless": {
+          "name": "headless",
+          "cn_name": "后台模式",
+          "description": "是否使用后台模式",
+          "type": "boolean",
+          "default": true,
+          "example": "true"
+        },
+        "selectors": {
+          "name": "selectors",
+          "cn_name": "元素选择器",
+          "description": "要检测的元素的 CSS 选择器,多个用逗号分隔",
+          "type": "string",
+          "default": "body",
+          "required": true,
+          "example": "div.content,div#footer"
+        },
+        "prejs": {
+          "name": "prejs",
+          "cn_name": "自定义 JavaScript 代码",
+          "description": "页面加载完成后执行的自定义 JavaScript 代码",
+          "type": "string",
+          "ui": "textarea",
+          "advanced": true,
+          "example": "document.body.style.backgroundColor = 'red'"
+        },
+        "prejs_args": {
+          "name": "prejs_args",
+          "cn_name": "自定义 JavaScript 代码的参数，逗号分隔",
+          "description": "自定义 JavaScript 代码的参数",
+          "type": "string",
+          "advanced": true,
+          "example": "arg1,arg2"
+        },
+        "preplay": {
+          "name": "preplay",
+          "cn_name": "自定义 Playwright 代码",
+          "advanced": true,
+          "description": "页面加载完成后执行的自定义 Playwright 代码",
+          "type": "string",
+          "ui": "textarea",
+          "example": "await page.click('button#submit')"
+        },
+        "timeout": {
+          "name": "timeout",
+          "cn_name": "操作超时时间",
+          "description": " Playwright 操作超时时间,单位毫秒",
+          "type": "number",
+          "advanced": true,
+          "default": 60000,
+          "example": 30000
+        },
+        "list": {
+          "name": "list",
+          "cn_name": "返回元素列表而非单个元素",
+          "description": " 选择器是否返回元素列表",
+          "type": "boolean",
+          "advanced": true,
+          "default": false,
+          "example": "true"
+        },
+        "user": {
+          "name": "user",
+          "cn_name": "用户目录名称",
+          "description": "浏览器使用的用户目录",
+          "type": "string",
+          "advanced": true,
+          "default": "default",
+          "example": "admin"
+        },
+        "format": {
+          "name": "format",
+          "cn_name": "返回数据格式",
+          "description": "返回的数据格式",
+          "type": "string",
+          "advanced": true,
+          "default": "text",
+          "example": "json",
+          "enum": [
+            "json",
+            "text"
+          ]
+        },
+        "wait_type": {
+          "name": "wait_type",
+          "cn_name": "元素检测时机",
+          "description": "等待元素出现的方式",
+          "type": "string",
+          "advanced": true,
+          "default": "domcontentloaded",
+          "example": "networkidle",
+          "enum": [
+            "domcontentloaded",
+            "load",
+            "networkidle"
+          ]
+        }
+      },
+      "watch": {
+        "sendkey": {
+          "name": "sendkey",
+          "description": "填入后，检测到变化时会调用Server酱发消息",
+          "type": "string",
+          "example": "abcdefg1234"
+        },
+        "apprise_server_url": {
+          "name": "apprise_server_url",
+          "cn_name": "Apprise Server URL",
+          "description": "apprise的Server URL；需安装 apprise 命令行以后才可使用",
+          "type": "string",
+          "example": "schan://SCT1U...",
+          "advanced": true
+        },
+        "task_title": {
+          "name": "task_title",
+          "description": "显示在动态中，非命令行模式则无需填写",
+          "cn_name": "任务名称",
+          "type": "string",
+          "example": "监测方小代版本更新",
+          "advanced": true
+        },
+        "task_icon": {
+          "name": "task_icon",
+          "description": "显示在动态中，非命令行模式则无需填写",
+          "cn_name": "任务图标地址",
+          "type": "string",
+          "example": "/logo.svg",
+          "advanced": true
+        },
+        "feed_publish": {
+          "name": "feed_publish",
+          "cn_name": "数据变动时发布Feed",
+          "description": "是否发布为Feed，将显示在动态页面",
+          "type": "boolean",
+          "default": false,
+          "example": "true"
+        },
+        "feed_as_public": {
+          "name": "feed_as_public",
+          "cn_name": "Feed是否公开（并入RSS）",
+          "description": "Feed 是否公开",
+          "type": "boolean",
+          "advanced": true,
+          "default": true,
+          "example": "true",
+          "show_when_field_not_empty": "feed_publish"
+        }
+      }
+    },
+    "output": {
+      "main|watch": {
+        "success": {
+          "merged_html": {
+            "name": "merged_html",
+            "description": "所有选择器匹配元素的HTML内容合并之后的结果",
+            "type": "string",
+            "example": "<div>Example HTML content</div>"
+          },
+          "merged_text": {
+            "name": "merged_text",
+            "description": "所有选择器匹配元素的文本内容合并之后的结果",
+            "type": "string",
+            "example": "Example text content"
+          },
+          "output": {
+            "name": "output",
+            "description": "根据format参数决定是返回merged_text还是其他格式的数据",
+            "type": "string",
+            "example": "Example output content"
+          },
+          "data": {
+            "name": "data",
+            "description": "包含每个选择器匹配的元素的详细信息，如HTML内容和文本内容",
+            "type": "array",
+            "example": "[{\"selector\": \"div.content\", \"html\": \"<div>content</div>\", \"text\": \"content\"}]"
+          }
+        },
+        "fail": {
+          "error": {
+            "name": "error",
+            "type": "string",
+            "description": "错误信息",
+            "example": "页面加载失败或元素未找到"
+          }
+        }
+      }
+    }    
+  }
+}

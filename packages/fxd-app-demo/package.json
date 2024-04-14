@@ -1,0 +1,49 @@
+{
+  "name": "fxd-app-demo",
+  "description": "app demo",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "meta":
+  {
+    "for":"fxd",
+    "author_uid":0,
+    "args": 
+    {
+      "main":{
+        "url": {
+        "name": "url",
+        "description": "要打开的页面 URL",
+        "type": "string",
+        "required": false,
+        "default": "https://f.ftqq.com",
+        "example": "https://www.example.com" 
+        }
+      }
+    },
+    "output":
+    {
+      "main":
+      {
+        "success":
+        {
+          "result":
+          {
+            "name": "result",
+            "description": "返回结果"
+          }
+        }
+      },
+      "fail":
+      {
+        "error": {
+          "name": "error",
+          "type": "string",
+          "description": "错误信息",
+          "example": "搜索过程中发生错误"
+        }  
+      }
+    }
+  }
+}

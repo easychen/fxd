@@ -1,0 +1,55 @@
+{
+  "name": "fxd-app-flow-runner",
+  "description": "后台运行fxd flow",
+  "version": "1.0.6+041221",
+  "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "meta": {
+    "for": "fxd",
+    "author_uid": 1,
+    "args": {
+      "main": {
+        "id": {
+          "name": "id",
+          "description": "要运行的flow id",
+          "type": "number",
+          "required": false,
+          "default": 0,
+          "example": 1
+        },
+        "format":
+        {
+          "name": "format",
+          "description": "返回结果格式",
+          "type": "string",
+          "required": false,
+          "default": "json",
+          "example": "json"
+        }
+      }
+    },
+    "output": {
+      "main": {
+        "success": {
+          "result": {
+            "name": "result",
+            "description": "返回结果"
+          }
+        }
+      },
+      "fail": {
+        "error": {
+          "name": "error",
+          "type": "string",
+          "description": "错误信息",
+          "example": "搜索过程中发生错误"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "api2d": "^0.1.40",
+    "jsonata": "^2.0.4"
+  }
+}

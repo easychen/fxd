@@ -1,0 +1,150 @@
+{
+  "name": "fxd-app-screenshot",
+  "description": "对传入的url截图",
+  "version": "1.0.2",
+  "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "meta": {
+    "for": "fxd",
+    "author_uid": 1,
+    "args": {
+      "main": {
+        "url": {
+          "name": "url",
+          "description": "要截图页面 URL",
+          "type": "string",
+          "required": false,
+          "default": "https://ftqq.com",
+          "example": "https://www.example.com"
+        },
+        "width": {
+          "name": "width",
+          "description": "截图宽度",
+          "type": "number",
+          "required": false,
+          "default": 1920,
+          "example": 1920
+        },
+        "height": {
+          "name": "height",
+          "description": "截图高度",
+          "type": "number",
+          "required": false,
+          "default": 1080,
+          "example": 1080
+        },
+        "scale": {
+          "name": "scale",
+          "description": "设备缩放因子",
+          "type": "number",
+          "required": false,
+          "default": 1,
+          "example": 1
+        },
+        "full_page": {
+          "name": "full_page",
+          "description": "是否截取整个页面",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "example": false
+        },
+        "timeout": {
+          "name": "timeout",
+          "description": "截图超时时间",
+          "type": "number",
+          "required": false,
+          "default": 30000,
+          "example": 30000
+        },
+        "wait_type": {
+          "name": "wait_type",
+          "description": "等待页面加载的事件",
+          "type": "string",
+          "required": false,
+          "default": "load",
+          "example": "load"
+        },
+        "save_path": {
+          "name": "save_path",
+          "description": "截图保存路径",
+          "type": "string",
+          "required": false,
+          "example": "/tmp/abc.png"
+        },
+        "user": {
+          "name": "user",
+          "description": "登录用户名",
+          "type": "string",
+          "required": false,
+          "default": "default",
+          "example": "admin"
+        },
+        "browser": {
+          "name": "browser",
+          "description": "浏览器类型",
+          "type": "string",
+          "required": false,
+          "default": "chrome",
+          "example": "chrome"
+        },
+        "headless": {
+          "name": "headless",
+          "description": "是否无头模式",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "example": true
+        }
+      }
+    },
+    "output": {
+      "main": {
+        "success": {
+          "action": {
+            "name": "action",
+            "type": "string",
+            "description": "动作类型",
+            "example": "screenshot"
+          },
+          "message": {
+            "name": "message",
+            "type": "string",
+            "description": "操作结果消息",
+            "example": "done"
+          },
+          "output": {
+            "name": "output",
+            "type": "string",
+            "description": "截图保存路径",
+            "example": "/path/to/screenshot.png"
+          }
+        },
+        "fail": {
+          "action": {
+            "name": "action",
+            "type": "string",
+            "description": "动作类型",
+            "example": "screenshot"
+          },
+          "message": {
+            "name": "message",
+            "type": "string",
+            "description": "错误信息",
+            "example": "error"
+          },
+          "output": {
+            "name": "output",
+            "type": "string",
+            "description": "错误详细信息",
+            "example": "screenshot failed"
+          }
+        }
+      }
+    }    
+  },
+  "dependencies": {
+    "fxd-app-browser": "^1.0.8"
+  }
+}

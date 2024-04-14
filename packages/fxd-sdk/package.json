@@ -1,0 +1,16 @@
+{
+  "name": "fxd-sdk",
+  "version": "1.0.66",
+  "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "dependencies": {
+    "api2d": "^0.1.40",
+    "cross-fetch": "^4.0.0",
+    "https-proxy-agent": "^7.0.4",
+    "node-fetch": "^3.3.2",
+    "node-json-db": "^2.3.0",
+    "read-pkg": "^9.0.1",
+    "socket.io-client": "^4.7.4"
+  }
+}

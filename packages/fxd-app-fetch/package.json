@@ -1,0 +1,171 @@
+{
+  "name": "fxd-app-fetch",
+  "displayName": "Fxd网页内容获取",
+  "description": "根据输入的url抓取网页内容，并进行优化和格式转换",
+  "version": "1.0.8",
+  "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "meta": {
+    "args": {
+      "main": {
+        "url": {
+          "name": "url",
+          "description": "要获取的页面 URL",
+          "type": "string",
+          "required": true,
+          "default": "https://ftqq.com",
+          "example": "https://www.example.com"
+        },
+        "format": {
+          "name": "format",
+          "description": "返回数据格式",
+          "type": "string",
+          "required": false,
+          "default": "text",
+          "example": "json"
+        },
+        "output": {
+          "name": "output",
+          "description": "输出数据格式",
+          "type": "string",
+          "required": false,
+          "default": "markdown",
+          "example": "html",
+          "enum": [
+            "markdown",
+            "html",
+            "text",
+            "raw"
+          ]
+        },
+        "timeout": {
+          "name": "timeout",
+          "description": "超时时间",
+          "type": "number",
+          "required": false,
+          "default": 5000,
+          "example": 5000
+        },
+        "headless": {
+          "name": "headless",
+          "description": "是否启用后台模式",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "example": true
+        },
+        "user": {
+          "name": "user",
+          "description": "用户名",
+          "type": "string",
+          "required": false,
+          "default": "default",
+          "example": "username"
+        },
+        "wait_type": {
+          "name": "wait_type",
+          "description": "等待类型",
+          "type": "string",
+          "required": false,
+          "default": "domcontentloaded",
+          "example": "domcontentloaded",
+          "enum": [
+            "load",
+            "domcontentloaded",
+            "networkidle"
+          ]
+        }
+      },
+      "json": {
+        "url": {
+          "name": "url",
+          "description": "要获取的页面 URL",
+          "type": "string",
+          "required": true,
+          "default": "https://ftqq.com",
+          "example": "https://www.example.com"
+        },
+        "format": {
+          "name": "format",
+          "description": "返回数据格式",
+          "type": "string",
+          "required": false,
+          "default": "text",
+          "example": "json"
+        },
+        "timeout": {
+          "name": "timeout",
+          "description": "超时时间",
+          "type": "number",
+          "required": false,
+          "default": 5000,
+          "example": 5000
+        }
+      }
+    },
+    "output":
+    {
+      "main":
+      {
+        "success":
+        {
+          "content_format":
+          {
+            "name": "content_format",
+            "type": "string",
+            "description": "返回数据格式，包括raw/markdown/html/text",
+            "example": "html"
+          },
+          "content":
+          {
+            "name": "content",
+            "type": "string",
+            "description": "返回数据内容",
+            "example": "https://www.example.com"
+          }
+        },
+        "fail":
+        {
+          "error":
+          {
+            "name": "error",
+            "type": "string",
+            "description": "错误信息",
+            "example": "获取页面内容失败"
+          } 
+        }
+      },
+      "json":
+      {
+        "success":
+        {
+          "content":
+          {
+            "name": "content",
+            "type": "string",
+            "description": "返回的JSON数据",
+            "example": "https://www.example.com"
+          }
+        },
+        "fail":
+        {
+          "error":
+          {
+            "name": "error",
+            "type": "string",
+            "description": "错误信息",
+            "example": "获取页面内容失败"
+          } 
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.4.4",
+    "fxd-app-browser": "^1.0.8",
+    "jsdom": "^22.1.0",
+    "sanitize-html": "^2.11.0",
+    "turndown": "^7.1.2"
+  }
+}
