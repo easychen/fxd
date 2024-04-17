@@ -1,0 +1,11 @@
+{
+  "name": "fxd",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://gitlab.com/easychen/fxd.git",
+  "author": "Easy <easychen@qq.com>",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "workspaces": [
+    "packages/*"
+  ]
+}
