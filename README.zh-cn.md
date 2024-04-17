@@ -22,6 +22,35 @@ Fxd 是 Flow eXtension Define 的缩写，它是一个被设计用于工作流
 
 对于不会使用命令行的用户，还可以使用兼容 Fxd 规范的客户端，比如我们正在内测的 FlowDeer，它可以通过可视化流程图的方式帮助用户设计工作流。
 
+开发环境
+------
+
+本 Repo 采用了 Yarn workspaces 来管理多个包。在根目录下运行：
+
+```bash
+yarn install
+```
+
+然后进入命令行的目录
+```bash
+cd packages/fxd-cli
+```
+
+将目录下的 ./fxd 作为命令行工具使用即可：
+
+```bash
+# 查看帮助
+./fxd core help
+
+# 查看Demo应用帮助
+./fxd demo help
+```
+
+你可以为 `fxd-app-demo` 创建副本进行修改调试，完成后，`npm publish fxd-app-your-app` 发布即可在所有支持FXD规范的软件中使用。
+
+如果你不希望代码发布到 npm，也可以通过 `npm install <package-path>` 的方式来进行安装。
+
+
 License
 ------
 

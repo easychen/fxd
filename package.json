@@ -4,6 +4,7 @@
   "main": "index.js",
   "repository": "https://gitlab.com/easychen/fxd.git",
   "author": "Easy <easychen@qq.com>",
+  "private": "true",
   "license": "SEE LICENSE IN LICENSE.txt",
   "workspaces": [
     "packages/*"

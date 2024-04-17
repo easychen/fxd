@@ -19,6 +19,35 @@ Each of these is an independent NPM package, and each app can be called via the 
 
 For users unfamiliar with using command lines, there is also a client compatible with the Fxd specification, such as the FlowDeer we are currently beta testing, which helps users design workflows through a visual flowchart.
 
+Development Environment
+------
+
+This repository utilizes Yarn workspaces to manage multiple packages. Run the following command in the root directory:
+
+```bash
+yarn install
+```
+
+Then navigate to the command line directory:
+
+```bash
+cd packages/fxd-cli
+```
+
+You can use the `./fxd` in this directory as a command line tool:
+
+```bash
+# View help
+./fxd core help
+
+# View help for the Demo application
+./fxd demo help
+```
+
+You can create a copy of `fxd-app-demo` for modification and debugging. Once you're done, publish it with `npm publish fxd-app-your-app` to make it available in all software that supports the FXD specification.
+
+If you prefer not to publish your code to npm, you can also install it via `npm install <package-path>`.
+
 **License**
 
 The SDK, command-line tools, and core packages of FXD by default adopt the PolyForm Noncommercial License. If different licenses are included in the packages directory, the latter will prevail.
