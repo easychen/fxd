@@ -1,5 +1,5 @@
-Fxd是什么
-------
+# Fxd是什么
+
 
 [ [中文](./README.zh-cn.md) | [English](./README.md) ]
 
@@ -22,8 +22,10 @@ Fxd 是 Flow eXtension Define 的缩写，它是一个被设计用于工作流
 
 对于不会使用命令行的用户，还可以使用兼容 Fxd 规范的客户端，比如我们正在内测的 FlowDeer，它可以通过可视化流程图的方式帮助用户设计工作流。
 
-开发环境
-------
+# 开发环境
+
+
+## 命令行调试
 
 本 Repo 采用了 Yarn workspaces 来管理多个包。在根目录下运行：
 
@@ -66,11 +68,31 @@ node fxd demo help
 
 你可以为 `fxd-app-demo` 创建副本进行修改调试，完成后，`npm publish fxd-app-your-app` 发布即可在所有支持FXD规范的软件中使用。
 
-如果你不希望代码发布到 npm，也可以通过 `npm install <package-path>` 的方式来进行安装。
+## 在FlowDeer中调试
 
+默认情况下，FlowDeer直接安装 NPM 网站上的包；但我们有需要在发布前调试。这里提供一种解决方案：
 
-License
-------
+由于FlowDeer会优先在本地目录查找，因此我们可以通过命令行在 FlowDeer 对应的目录下运行 npm install <package-path> 进行本地安装。
+
+具体而言，对于Mac系统：
+
+```bash
+cd /Applications/FlowDeer.app/Contents/Resources/app.asar.unpacked/src/local-api
+npm install path/to/your/package
+```
+
+如果你没有将 FlowDeer 安装在 Application 目录，请自行调整 /Applications/FlowDeer.app 部分路径。
+
+对于Windows系统：
+
+```bash
+cd <FlowDeer目录>/resources/app.asar.unpacked/src/local-api
+npm install path/to/your/package
+```
+
+安装完成后，再在 FlowDeer 界面添加包名即可。
+
+# License
 
 FXD 的SDK、命令行工具和核心包默认采用 PolyForm Noncommercial License,如 packages 目录下包含不同的 License，则以后者为准。
 
