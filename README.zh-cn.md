@@ -30,13 +30,22 @@ Fxd 是 Flow eXtension Define 的缩写，它是一个被设计用于工作流
 ```bash
 yarn install
 ```
+<details>
+<summary>Windows 无法加载文件 **Roaming\npm\yarn.ps1 的解决方案</summary>
+这是因为策略限制导致的错误，请按以下步骤解决：
+
+1. 搜索Powershell，右键以管理员身份运行
+1. 输入 Set-ExecutionPolicy RemoteSigned 然后选 Y
+1. 关闭PowerShell，重新运行 yarn 命令
+</details>
+
 
 然后进入命令行的目录
 ```bash
 cd packages/fxd-cli
 ```
 
-将目录下的 ./fxd 作为命令行工具使用即可：
+类Unix系统上，将目录下的 ./fxd 作为命令行工具使用即可：
 
 ```bash
 # 查看帮助
@@ -44,6 +53,15 @@ cd packages/fxd-cli
 
 # 查看Demo应用帮助
 ./fxd demo help
+```
+Windows上需要手工添加 node 命令前缀
+
+```bash
+# 查看帮助
+node fxd core help
+
+# 查看Demo应用帮助
+node fxd demo help
 ```
 
 你可以为 `fxd-app-demo` 创建副本进行修改调试，完成后，`npm publish fxd-app-your-app` 发布即可在所有支持FXD规范的软件中使用。

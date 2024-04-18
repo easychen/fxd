@@ -19,22 +19,32 @@ Each of these is an independent NPM package, and each app can be called via the 
 
 For users unfamiliar with using command lines, there is also a client compatible with the Fxd specification, such as the FlowDeer we are currently beta testing, which helps users design workflows through a visual flowchart.
 
+Translation to English:
+
 Development Environment
 ------
 
-This repository utilizes Yarn workspaces to manage multiple packages. Run the following command in the root directory:
+This Repo utilizes Yarn workspaces to manage multiple packages. Run the following in the root directory:
 
 ```bash
 yarn install
 ```
+<details>
+<summary>Solution for Windows not being able to load the file **Roaming\npm\yarn.ps1</summary>
+This error is due to policy restrictions. Please follow these steps to resolve it:
+
+1. Search for Powershell, right-click and run as administrator.
+1. Enter `Set-ExecutionPolicy RemoteSigned` then choose Y.
+1. Close PowerShell and rerun the yarn command.
+</details>
+
 
 Then navigate to the command line directory:
-
 ```bash
 cd packages/fxd-cli
 ```
 
-You can use the `./fxd` in this directory as a command line tool:
+On Unix-like systems, use the ./fxd in the directory as a command-line tool:
 
 ```bash
 # View help
@@ -43,10 +53,19 @@ You can use the `./fxd` in this directory as a command line tool:
 # View help for the Demo application
 ./fxd demo help
 ```
+On Windows, manually add the node command prefix:
 
-You can create a copy of `fxd-app-demo` for modification and debugging. Once you're done, publish it with `npm publish fxd-app-your-app` to make it available in all software that supports the FXD specification.
+```bash
+# View help
+node fxd core help
 
-If you prefer not to publish your code to npm, you can also install it via `npm install <package-path>`.
+# View help for the Demo application
+node fxd demo help
+```
+
+You can create a copy of `fxd-app-demo` for modification and debugging. Once completed, publish it with `npm publish fxd-app-your-app` to make it available in all software supporting the FXD standard.
+
+If you prefer not to publish your code to npm, you can also install it using `npm install <package-path>`.
 
 **License**
 
