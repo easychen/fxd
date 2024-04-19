@@ -27,7 +27,13 @@ export default class FxdFetch extends FxdBrowser {
 
         page.setDefaultTimeout(this.get('timeout')); // 设置超时
         await page.goto(url);// 打开URL
-        await page.waitForLoadState( this.get('wait_type')); 
+        await page.waitForLoadState( this.get('wait_type'));
+        
+        if( this.get('delay') > 0 )
+        {
+            // 等待 delay ms
+            await page.waitForTimeout(this.get('delay'));
+        }
 
         const html = await page.content();
         // 使用 Readability 解析 html

@@ -2,7 +2,7 @@
   "name": "fxd-app-fetch",
   "displayName": "Fxd网页内容获取",
   "description": "根据输入的url抓取网页内容，并进行优化和格式转换",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "main": "index.js",
   "license": "SEE LICENSE IN LICENSE.txt",
   "type": "module",
@@ -75,6 +75,15 @@
             "domcontentloaded",
             "networkidle"
           ]
+        },
+        "delay": 
+        {
+          "name": "delay",
+          "description": "延迟时间，单位是毫秒",
+          "type": "number",
+          "required": false,
+          "default": 0,
+          "example": 1000
         }
       },
       "json": {
