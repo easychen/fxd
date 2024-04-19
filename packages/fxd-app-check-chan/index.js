@@ -35,7 +35,7 @@ export default class FxdCheckChan extends FxdBrowser {
 
         const userDirFullPath = process.env.FXD_USER_DIR || this.getUserDirFullPath(this.get('user'));
 
-        const { browser, page, context } = await this.getBrowserAndMore(userDirFullPath, { headless });
+        const { browser, page, context } = await this.getBrowserAndMore(userDirFullPath, { headless, browserType:this.get('browser') });
 
         page.setDefaultTimeout(this.get('timeout')); // 设置超时
         await page.goto(url);// 打开URL

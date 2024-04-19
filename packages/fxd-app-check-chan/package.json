@@ -1,7 +1,7 @@
 {
   "name": "fxd-app-check-chan",
   "displayName": "CheckChan",
-  "version": "1.0.26",
+  "version": "1.0.27",
   "main": "index.js",
   "license": "SEE LICENSE IN LICENSE.txt",
   "type": "module",
@@ -32,6 +32,15 @@
           "type": "boolean",
           "default": true,
           "example": "true"
+        },
+        "browser":{
+          "name": "browser",
+          "description": "浏览器类型",
+          "type": "string",
+          "required": false,
+          "default": "chromium",
+          "example": "chromium",
+          "enum": ["chromium","firefox","webkit"]
         },
         "selectors": {
           "name": "selectors",
