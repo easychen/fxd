@@ -23,7 +23,7 @@ export default class FxdFetch extends FxdBrowser {
         if (!url) this.echoError("url is required");
         
         const headless = this.get('headless');
-        const { page, browser } = await this.getBrowserAndMore(this.getUserDirFullPath(this.get('user')), { headless });
+        const { page, browser } = await this.getBrowserAndMore(this.getUserDirFullPath(this.get('user')), { headless, browserType:this.get('browser') });
 
         page.setDefaultTimeout(this.get('timeout')); // 设置超时
         await page.goto(url);// 打开URL

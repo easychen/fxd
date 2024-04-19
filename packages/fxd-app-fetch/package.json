@@ -2,7 +2,7 @@
   "name": "fxd-app-fetch",
   "displayName": "Fxd网页内容获取",
   "description": "根据输入的url抓取网页内容，并进行优化和格式转换",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "main": "index.js",
   "license": "SEE LICENSE IN LICENSE.txt",
   "type": "module",
@@ -54,6 +54,15 @@
           "required": false,
           "default": true,
           "example": true
+        },
+        "browser":{
+          "name": "browser",
+          "description": "浏览器类型",
+          "type": "string",
+          "required": false,
+          "default": "chromium",
+          "example": "chromium",
+          "enum": ["chromium","firefox","webkit"]
         },
         "user": {
           "name": "user",
