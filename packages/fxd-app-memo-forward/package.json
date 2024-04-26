@@ -1,0 +1,129 @@
+{
+  "name": "fxd-app-memo-forward",
+  "description": "转发memo到微博",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "meta": {
+    "for": "fxd",
+    "author_uid": 0,
+    "args": {
+      "main": {
+        "api_base": {
+          "name": "api_base",
+          "description": "memos 实例的url",
+          "type": "string",
+          "required": true,
+          "example": "https://memo.ft07.com"
+        },
+        "access_token": {
+          "name": "access_token",
+          "description": "访问令牌",
+          "type": "string",
+          "required": true,
+          "example": "eyJhbGciOiJ..."
+        },
+        "tags": {
+          "name": "tags",
+          "description": "同步标签，多个之间用逗号,隔开，不指定则全部同步",
+          "type": "string",
+          "required": false,
+          "example": "工作"
+        },
+        "to_weibo": {
+          "name": "to_weibo",
+          "description": "是否同步微博",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "example": "true"
+        },
+        "days": {
+          "name": "days",
+          "cn_name": "天数",
+          "type": "number",
+          "description": "最近多少天的内容",
+          "default": 1
+        },
+        "extra_images": {
+          "name": "extra_images",
+          "description": "附加图片，多个之间用逗号,隔开，不指定则不附加图片",
+          "type": "string",
+          "required": false,
+          "example": "https://www.baidu.com/img/bd_logo1.png"
+        },
+        "self_only": {
+          "name": "self_only",
+          "cn_name": "仅自己可见",
+          "description": "是否仅对自己可见",
+          "type": "boolean",
+          "default": false,
+          "example": "true"
+        },
+        "user": {
+          "name": "user",
+          "description": "浏览器使用的用户目录",
+          "type": "string",
+          "default": "default",
+          "example": "admin"
+        },
+        "format": {
+          "name": "format",
+          "description": "返回的数据格式",
+          "type": "string",
+          "default": "text",
+          "example": "json",
+          "enum": [
+            "json",
+            "text"
+          ]
+        },
+        "headless": {
+          "name": "headless",
+          "cn_name": "后台模式",
+          "description": "是否使用后台模式",
+          "type": "boolean",
+          "default": true,
+          "example": "true"
+        },
+        "browser": {
+          "name": "browser",
+          "description": "浏览器类型",
+          "type": "string",
+          "default": "chrome",
+          "example": "chrome",
+          "enum": [
+            "chrome",
+            "firefox",
+            "webkit"
+          ]
+        }
+      }
+    },
+    "output": {
+      "main": {
+        "success": {
+          "result": {
+            "name": "result",
+            "description": "返回结果"
+          }
+        }
+      },
+      "fail": {
+        "error": {
+          "name": "error",
+          "type": "string",
+          "description": "错误信息",
+          "example": "搜索过程中发生错误"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "dayjs": "^1.11.10",
+    "fxd-app-core": "^1.0.47",
+    "fxd-app-weibo-publish": "^1.0.12",
+    "fxd-sdk": "^1.0.66"
+  }
+}

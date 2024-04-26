@@ -67,7 +67,14 @@ export default class FxdWeiboPublish extends FxdBrowser {
                         if( ext == '.mp4' ) continue;
                         
                         const filename = `${dayjs().format('YYYYMMDDHHmmss')}_${i}${ext}`;
-                        await download(image, tmp_dir, {filename});
+                        this.log("referrer",new URL(image).origin )
+                        await download(image, tmp_dir, {
+                            filename,
+                            headers:
+                            {
+                                Referer: new URL(image).origin
+                            }
+                        });
                         image = path.join(tmp_dir, filename);
                         this.log("local image path", image);
                     }
