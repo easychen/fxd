@@ -30,21 +30,40 @@ export default class FxdFlowRunner extends FxdApp {
         this.format = this.get('format');
         
         const id = this.get('id');
-        const ret = await this.sdk.flow(id);
-        if( ret && ret.data && ret.data.data )
+        if( parseInt(id) > 0 )
         {
-            if( ret.data.data )
+            const ret = await this.sdk.flow(id);
+            if( ret && ret.data && ret.data.data )
             {
-                await this.execute(ret.data.data);
-                return this.return({
-                    'result': this.flowResult.length > 0 ? this.flowResult : '',
-                    'output': JSON.stringify(this.flowResult, null, 2).substring(0,100)
-                })
+                if( ret.data.data )
+                {
+                    await this.execute(ret.data.data);
+                    return this.return({
+                        'result': this.flowResult.length > 0 ? this.flowResult : '',
+                        'output': JSON.stringify(this.flowResult, null, 2).substring(0,100)
+                    })
+                }
+                
+            }else
+            {
+                this.echoError('flow not found on cloud'+JSON.stringify(ret, null, 2));
             }
-            
         }else
         {
-            this.echoError('flow not found'+JSON.stringify(ret, null, 2));
+            const file_path  = this.get('file_path');
+            // 如果文件存在，加载文件
+            if( fs.existsSync(file_path) )
+            {
+                const data = JSON.parse(fs.readFileSync(file_path, 'utf-8'));
+                await this.execute(data);
+                return this.return({
+                    'result': this.flowResult.length > 0 ? this.flowResult : '',
+                    'output': JSON.stringify(this.flowResult, null, 2).substring(0, 100)
+                })
+            }else
+            {
+                this.echoError('file not found ' + file_path);
+            }
         }
     }
 
@@ -432,15 +451,26 @@ export default class FxdFlowRunner extends FxdApp {
 
         if (runNext) {
             // 通过 edges 找到下一个节点(可能包含多个)
+            const nextNodes = [];
             const nextEdges = edges.filter(e => e.source === nodeId);
             for (const nextEdge of nextEdges) {
                 // 找到下一个节点
                 const nextNodeId = nextEdge.target;
                 this.log('nextNodeId', nextNodeId);
                 if (nextNodeId) {
-                    // 递归执行下一个节点
-                    await this._executeByNode(nodeToExecute, nextNodeId, nodes, edges, node.data || {});
+                    nextNodes.push(nodes.find(n => n.id === nextNodeId));
                 }
+                // if (nextNodeId) {
+                //     // 递归执行下一个节点
+                //     await this._executeByNode(nodeToExecute, nextNodeId, nodes, edges, node.data || {});
+                // }
+            }
+            nextNodes.sort((a, b) => a.position?.y - b.position?.y);
+            for(const nNode of nextNodes)
+            {
+                // 递归执行下一个节点
+                // await _executeByNode(nodeToExecute, nNode.id, node.data || {});
+                await this._executeByNode(nodeToExecute, nNode.id, nodes, edges, node.data || {});
             }
         }
     }

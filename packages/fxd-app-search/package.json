@@ -1,6 +1,7 @@
 {
   "name": "fxd-app-search",
-  "version": "1.0.7",
+  "description": "根据传入的query搜索网页，返回搜索结果。支持用sites指定网站搜索",
+  "version": "1.0.8",
   "main": "index.js",
   "license": "MIT",
   "type": "module",
@@ -11,7 +12,7 @@
       "main": {
         "query": {
           "name": "query",
-          "description": "要搜索的关键词",
+          "description": "要搜索的关键词，如果指定了sites参数，这里就不要再重复出现网站相关关键词。",
           "type": "string",
           "required": true
         },

@@ -1,7 +1,7 @@
 {
   "name": "fxd-app-flow-runner",
   "description": "后台运行fxd flow",
-  "version": "1.0.6+041221",
+  "version": "1.0.7+042609",
   "main": "index.js",
   "license": "SEE LICENSE IN LICENSE.txt",
   "type": "module",
@@ -17,6 +17,14 @@
           "required": false,
           "default": 0,
           "example": 1
+        },
+        "file_path":
+        {
+          "name": "file_path",
+          "description": "要运行的flow文件路径",
+          "type": "string",
+          "required": false,
+          "example": "flow/flow.json"
         },
         "format":
         {
