@@ -1,5 +1,5 @@
 node_modules
 # 忽略所有目录下的 .DS_Store
 .DS_Store
-packages/fxd-app-core/test.js
 test.txt
+test.js

@@ -1,7 +1,7 @@
 {
   "name": "fxd-app-flow-runner",
   "description": "后台运行fxd flow",
-  "version": "1.0.7+042609",
+  "version": "1.0.8+042714",
   "main": "index.js",
   "license": "SEE LICENSE IN LICENSE.txt",
   "type": "module",

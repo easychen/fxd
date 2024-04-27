@@ -1,13 +1,13 @@
 {
   "name": "fxd-app-memo-forward",
   "description": "转发memo到微博",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "main": "index.js",
   "license": "SEE LICENSE IN LICENSE.txt",
   "type": "module",
   "meta": {
     "for": "fxd",
-    "author_uid": 0,
+    "author_uid": 1,
     "args": {
       "main": {
         "api_base": {
@@ -31,13 +31,30 @@
           "required": false,
           "example": "工作"
         },
-        "to_weibo": {
-          "name": "to_weibo",
-          "description": "是否同步微博",
-          "type": "boolean",
+        "to": {
+          "name": "to",
+          "description": "发送到什么平台",
+          "type": "string",
           "required": false,
-          "default": true,
-          "example": "true"
+          "default": "weibo",
+          "example": "weibo",
+          "enum": ["weibo","subdeer"]
+        },
+        "subdeer_token":
+        {
+          "name": "subdeer_token",
+          "description": "subdeer token",
+          "type": "string",
+          "required": false,
+          "example": "eyJhbGciOiJ..."
+        },
+        "subdeer_channel_id":
+        {
+          "name": "subdeer_channel_id",
+          "description": "subdeer channel id",
+          "type": "number",
+          "required": false,
+          "example": 1
         },
         "days": {
           "name": "days",

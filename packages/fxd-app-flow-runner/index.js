@@ -21,7 +21,7 @@ export default class FxdFlowRunner extends FxdApp {
     constructor() {
         super();
         this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
-        this.flowResult = [];
+        this.flowResult = {};
     }
 
     async main(args, opts, command, cli_path) {
@@ -235,7 +235,7 @@ export default class FxdFlowRunner extends FxdApp {
                         }
                     });
 
-                    this.flowResult.push(retData);
+                    this.flowResult[nodeId] = retData;
                 }
             }
 
@@ -343,7 +343,7 @@ export default class FxdFlowRunner extends FxdApp {
                         }
                     });
 
-                    this.flowResult.push(retData);
+                    this.flowResult[nodeId] = retData;
                 }
             }
 
@@ -416,7 +416,7 @@ export default class FxdFlowRunner extends FxdApp {
                     }
                 });
 
-                this.flowResult.push(retData)
+                this.flowResult[nodeId] = retData;
 
             }
 
@@ -436,15 +436,29 @@ export default class FxdFlowRunner extends FxdApp {
                         fs.mkdirSync(file_dir, { recursive: true });
                     
                     // 写入文件，用utf-8编码
-                    fs.writeFileSync(file_path, file_content, 'utf-8');
+                    fs.writeFileSync(file_path, typeof file_content === 'string' ?  file_content : JSON.stringify(file_content, null, 4), 'utf-8');
                     this.sdk.wslog('file written');
                     
-                    this.flowResult.push({message:'file written', file_path});
+                    this.flowResult[nodeId] = {message:'file written', file_path};
                 }else
                 {
                     this.sdk.wslog('file_name or file_content not found');
-                    this.flowResult.push({error:'file_name or file_content not found'});
+                    this.flowResult[nodeId] = {error:'file_name or file_content not found'};
                 }
+            }
+
+            if( node.type === 'switchNode' )
+            {
+                this.sdk.wslog(`执行${node.type}节点 - ${node.data.title||""}`);
+                const last_execute_at = new Date().getTime();
+                nodes =  nodes.map(n => {
+                    if (n.id === nodeId) {
+                        const updatedData = { ...n.data, result: prevNodeData.result, last_execute_at };
+                        return { ...n, data: updatedData };
+                    } else {
+                        return n;
+                    }
+                });
             }
 
         }
@@ -453,25 +467,94 @@ export default class FxdFlowRunner extends FxdApp {
             // 通过 edges 找到下一个节点(可能包含多个)
             const nextNodes = [];
             const nextEdges = edges.filter(e => e.source === nodeId);
-            for (const nextEdge of nextEdges) {
-                // 找到下一个节点
-                const nextNodeId = nextEdge.target;
-                this.log('nextNodeId', nextNodeId);
-                if (nextNodeId) {
-                    nextNodes.push(nodes.find(n => n.id === nextNodeId));
-                }
-                // if (nextNodeId) {
-                //     // 递归执行下一个节点
-                //     await this._executeByNode(nodeToExecute, nextNodeId, nodes, edges, node.data || {});
-                // }
-            }
-            nextNodes.sort((a, b) => a.position?.y - b.position?.y);
-            for(const nNode of nextNodes)
+
+
+            if( node.type === 'switchNode' )
             {
-                // 递归执行下一个节点
-                // await _executeByNode(nodeToExecute, nNode.id, node.data || {});
-                await this._executeByNode(nodeToExecute, nNode.id, nodes, edges, node.data || {});
+                // 分支节点
+                // console.log("in switch2", node.data.switch);
+                if( node.data.switch )
+                {
+                    let handleId = false;
+                    for(const switchItem of node.data.switch)
+                    {
+                        // console.log("switch Item", switchItem, switchItem.jsonata || "", prevNodeData.result[switchItem.field]);
+                        
+                        // 首先从 prevNodeData.result 中获取数据
+                        if (prevNodeData && prevNodeData.result) {
+                            const fieldValue = switchItem.jsonata ? await jsonata( switchItem.jsonata || "" ).evaluate( prevNodeData.result[switchItem.field] ) : prevNodeData.result[switchItem.field];
+
+                            let targetValue = switchItem.value;
+                            // 处理布尔值
+                            if( targetValue === 'true' ) targetValue = true;
+                            if( targetValue === 'false' ) targetValue = false;
+                            if( targetValue === '"true"' ) targetValue = "true";
+                            if( targetValue === '"false"' ) targetValue = "false";
+                            switch( switchItem.op )
+                            {
+                                case '!=':
+                                    if( fieldValue != targetValue ) handleId = switchItem.id;
+                                    break;
+                                case '>':
+                                    if( fieldValue > targetValue ) handleId = switchItem.id;
+                                    break;
+                                case '>=':
+                                    if( fieldValue >= targetValue ) handleId = switchItem.id;
+                                    break;
+                                case '<': 
+                                    if( fieldValue < targetValue ) handleId = switchItem.id;
+                                    break;
+                                case '<=':
+                                    if( fieldValue <= targetValue ) handleId = switchItem.id;
+                                    break;
+                                case '==':
+                                default:
+                                    if( fieldValue == targetValue ) handleId = switchItem.id;    
+                            }
+
+                            // console.log( fieldValue, targetValue, switchItem.op, handleId );
+                            if( handleId ) break;
+                        }   
+                    }
+
+                    if( handleId )
+                    {
+                        // console.log( "nextEdges", nextEdges )
+                        // ${item.id}-source
+                        // 查找 edge 中 sourceHandle 匹配的
+                        const nextEdge = nextEdges.find(e => e.sourceHandle === `${handleId}-source`);
+
+                        if( nextEdge && nextEdge.target )
+                        {
+                            await this._executeByNode(nodeToExecute, nextEdge.target, nodes, edges, node.data || {});
+                        }
+                    }
+                }
+                // 读取 switch数据，根据 prevNodeData.result 进行处理
+
+            }else
+            {
+                for (const nextEdge of nextEdges) {
+                    // 找到下一个节点
+                    const nextNodeId = nextEdge.target;
+                    this.log('nextNodeId', nextNodeId);
+                    if (nextNodeId) {
+                        nextNodes.push(nodes.find(n => n.id === nextNodeId));
+                    }
+                    // if (nextNodeId) {
+                    //     // 递归执行下一个节点
+                    //     await this._executeByNode(nodeToExecute, nextNodeId, nodes, edges, node.data || {});
+                    // }
+                }
+                nextNodes.sort((a, b) => a.position?.y - b.position?.y);
+                for(const nNode of nextNodes)
+                {
+                    // 递归执行下一个节点
+                    // await _executeByNode(nodeToExecute, nNode.id, node.data || {});
+                    await this._executeByNode(nodeToExecute, nNode.id, nodes, edges, node.data || {});
+                }
             }
+            
         }
     }
     
