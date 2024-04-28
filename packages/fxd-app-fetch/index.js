@@ -41,6 +41,7 @@ export default class FxdFetch extends FxdBrowser {
         const reader = new Readability(dom.window.document);
         const article = reader.parse();
         const contentHtml = article.content || dom.window.document.body.innerHTML;
+        const contentText = article.textContent || dom.window.document.body.textContent;
 
         const element = page.locator('body').first();
         let ret;
@@ -69,9 +70,13 @@ export default class FxdFetch extends FxdBrowser {
                 }));
                 this.log(ret); 
                 break;
+            case 'raw_text':
+                ret = await element.innerText();
+                this.log(ret); 
+                break;
             case 'text':
             default:
-                ret = await element.innerText();
+                ret = contentText?.replace(/\n{2,}/g, '\n').replace(/\s{2,}/g, ' ');
                 this.log(ret); 
         }
 

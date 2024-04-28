@@ -2,7 +2,7 @@
   "name": "fxd-app-fetch",
   "displayName": "Fxd网页内容获取",
   "description": "根据输入的url抓取网页内容，并进行优化和格式转换",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "main": "index.js",
   "license": "SEE LICENSE IN LICENSE.txt",
   "type": "module",

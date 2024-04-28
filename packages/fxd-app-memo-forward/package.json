@@ -1,7 +1,7 @@
 {
   "name": "fxd-app-memo-forward",
   "description": "转发memo到微博",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "main": "index.js",
   "license": "SEE LICENSE IN LICENSE.txt",
   "type": "module",
@@ -69,6 +69,13 @@
           "type": "string",
           "required": false,
           "example": "https://www.baidu.com/img/bd_logo1.png"
+        },
+        "append_text": {
+          "name": "append_text",
+          "description": "微博等社交媒体发布是的追加文案，会在同步内容之后自动加上",
+          "type": "string",
+          "required": false,
+          "example": "更多内容可查看 https://ft07.com"
         },
         "self_only": {
           "name": "self_only",

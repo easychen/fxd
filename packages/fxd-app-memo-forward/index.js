@@ -61,7 +61,7 @@ export default class FxdMemoForward extends FxdApp {
                         const extraImages= this.get('extra_images') ? this.get('extra_images').split(',')  : [];
                         const weibo_publish = new FxdWeiboPublish();
                         result = await weibo_publish.publish(null, {
-                            content: content4weibo(memo.content , tags_array),
+                            content: content4weibo(memo.content , tags_array) + ( this.get('append_text') ? `\n\n${this.get('append_text')}` : '' ) ,
                             images: [...memo.resourceList?.map( item => {
                                 if( String(item.type).startsWith("image") )
                                     return item.externalLink;
@@ -70,7 +70,7 @@ export default class FxdMemoForward extends FxdApp {
                             }).filter( item => item ), 
                                 ...extraImages
                             ].join(','),
-                            self_only: this.get('self_only'),
+                            self_only: String(this.get('self_only')),
                             headless: String(this.get('headless')),
                             user: this.get('user'),
                             format: 'function',
@@ -106,7 +106,8 @@ export default class FxdMemoForward extends FxdApp {
 
                 if( this.get('to') === 'subdeer' )
                 {
-                    const urlSHA = this.sdk.sha1('subdeer:'+this.get('api_base')); // 历史发布记录文件名
+                    // 将每一个通道单独计数
+                    const urlSHA = this.sdk.sha1('subdeer:'+this.get('subdeer_channel_id')+":"+this.get('api_base')); // 历史发布记录文件名
                     // 读取之前的发布记录
                     let published_memos = await this.sdk.getValue(urlSHA) || [];
 
