@@ -1,8 +1,9 @@
 {
-  "name": "fxd-app-weibo-publish",
-  "description": "自动发布微博",
-  "version": "1.0.13",
+  "name": "fxd-app-x-publish",
+  "description": "自动发布推文",
+  "version": "1.0.0",
   "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
   "type": "module",
   "meta": {
     "for": "fxd",
@@ -11,10 +12,10 @@
       "main|publish": {
         "content": {
           "name": "content",
-          "cn_name": "微博正文",
+          "cn_name": "推文正文",
           "type": "string",
           "required": true,
-          "description": "微博内容"
+          "description": "推文内容"
         },
         "headless": {
           "name": "headless",
@@ -44,7 +45,7 @@
         },
         "timeout": {
           "name": "timeout",
-          "description": " Playwright 操作超时时间,单位毫秒",
+          "description": "Playwright 操作超时时间,单位毫秒",
           "type": "number",
           "default": 60000,
           "example": 30000
@@ -63,19 +64,11 @@
         },
         "images": {
           "name": "images",
-          "cn_name": "微博配图URL",
+          "cn_name": "推文配图URL",
           "description": "图片地址，用逗号分隔",
           "type": "string",
           "default": "",
           "example": "https://www.baidu.com/1.jpg,https://www.baidu.com/2.jpg"
-        },
-        "self_only": {
-          "name": "self_only",
-          "cn_name": "仅自己可见",
-          "description": "是否仅对自己可见",
-          "type": "boolean",
-          "default": false,
-          "example": "true"
         },
         "browser": {
           "name": "browser",
@@ -109,13 +102,13 @@
           "output": {
             "name": "output",
             "type": "string",
-            "description": "微博内容的前100个字符加上省略号",
-            "example": "这是微博的前100个字符的示例..."
+            "description": "推文内容的前100个字符加上省略号",
+            "example": "这是推文的前100个字符的示例..."
           },
           "checked": {
             "name": "checked",
             "type": "boolean",
-            "description": "是否在用户主页上检查到发布的微博",
+            "description": "是否在用户主页上检查到发布的推文",
             "example": "true"
           }
         },
@@ -124,7 +117,7 @@
             "name": "error",
             "type": "string",
             "description": "错误的详细信息",
-            "example": "发布微博时出错"
+            "example": "发布推文时出错"
           },
           "output": {
             "name": "output",
@@ -134,10 +127,12 @@
           }
         }
       }
-    }    
+    }
   },
   "dependencies": {
-    "dayjs": "^1.11.10",
-    "download": "^8.0.0"
+    "css-in-js-utils": "^3.1.0",
+    "fxd-app-core": "^1.0.47",
+    "fxd-sdk": "^1.0.66",
+    "ow": "^2.0.0"
   }
 }
