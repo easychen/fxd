@@ -109,7 +109,7 @@ export default class FxdWeiboPublish extends FxdBrowser {
             for( const weiboText of weiboTextArray )
             {
                 // 检查其中是否包含 刚刚 和微博正文的前5个字
-                if( weiboText.includes('刚刚') && weiboText.includes(content.substring(0,5)) )
+                if( weiboText.includes('刚刚') && weiboText.includes(String(content)?.substring(0,5)) )
                 {
                     checked = true;
                     break;
@@ -118,7 +118,7 @@ export default class FxdWeiboPublish extends FxdBrowser {
 
 
             this.log('微博发布成功');
-            return this.return({ 'action': 'publish', 'message': 'done', 'output': String(content).substring(0,100) + '...', 'checked': checked});
+            return this.return({ 'action': 'publish', 'message': 'done', 'output': String(content)?.substring(0,100) + '...', 'checked': checked});
         } catch (error) {
             console.error('发布微博时出错：', error);
             await browser.close();

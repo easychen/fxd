@@ -17,7 +17,8 @@ export default class FxdMemoForward extends FxdApp {
         this.format = this.get('format');
         const tags = this.get('tags');
         const tags_array = tags ? tags.split(','): [];
-        const tags_query = tags_array.map(tag=>`&tag=${encodeURIComponent(tag)}`).join('');
+        // memos 不支持多 tag 查询，如果有多个tag，则直接不过滤（留到后边过滤）
+        const tags_query = tags_array.length > 1 ? '' : tags_array.map(tag=>`&tag=${encodeURIComponent(tag)}`).join('');
         const url = this.get('api_base')+'/api/v1/memo?limit=10'+tags_query;
 
         try {
@@ -32,13 +33,29 @@ export default class FxdMemoForward extends FxdApp {
             });
     
             const ret = await response.json();
+            // console.log( url, ret, this.get('access_token') );
             if( ret && Array.isArray( ret ))
             {
                 const memos = ret
                     .filter( item => item.visibility === 'PUBLIC')
                     .filter( item => {
+                        // item.content 包含 tags 中的一个
+                        if( tags_array.length === 0 )
+                        {
+                            return true;
+                        }else
+                        {
+                            const ret11 = tags_array.some( tag => item.content.includes(`#${tag}`));
+                            // if( ret11 ) console.log('ret11', item.content, 'contains', tags_array);
+                            return ret11;
+                        }
+                    } )
+                    .filter( item => {
                         return dayjs().diff(dayjs(item.updatedTs*1000), 'day') <= this.get('days')
                     }).reverse();
+
+                // console.log( 'memos', memos.map( item => item.content ) );
+                // return false;
     
                 if( this.get('to') === 'weibo' )
                 {

@@ -1,7 +1,7 @@
 {
   "name": "fxd-app-memo-forward",
   "description": "转发memo到微博",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "main": "index.js",
   "license": "SEE LICENSE IN LICENSE.txt",
   "type": "module",

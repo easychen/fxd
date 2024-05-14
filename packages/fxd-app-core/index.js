@@ -92,9 +92,9 @@ export default class FxdApp {
         }
         // 将全部参数都传递给 npm install，再加上 opts
         const install_path  = cli_path ? cli_path : process.cwd();
-        const command = `cd  ${install_path} && npm install ${args.join(' ')} ${Object.keys(opts).map(key => `--${key}=${opts[key]}`).join(' ')} `;
+        const command = `npm install ${args.join(' ')} ${Object.keys(opts).map(key => `--${key}=${opts[key]}`).join(' ')} `;
         console.log(chalk.blue(command));
-        child_process.execSync(command, { stdio: 'inherit' });
+        child_process.execSync(command, { stdio: 'inherit', cwd:install_path });
         return true;
     }
 
