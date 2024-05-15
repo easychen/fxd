@@ -1,7 +1,7 @@
 {
   "name": "fxd-app-memo-forward",
   "description": "转发memo到微博",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "main": "index.js",
   "license": "SEE LICENSE IN LICENSE.txt",
   "type": "module",
@@ -38,18 +38,20 @@
           "required": false,
           "default": "weibo",
           "example": "weibo",
-          "enum": ["weibo","subdeer"]
+          "enum": [
+            "weibo",
+            "subdeer",
+            "x"
+          ]
         },
-        "subdeer_token":
-        {
+        "subdeer_token": {
           "name": "subdeer_token",
           "description": "subdeer token",
           "type": "string",
           "required": false,
           "example": "eyJhbGciOiJ..."
         },
-        "subdeer_channel_id":
-        {
+        "subdeer_channel_id": {
           "name": "subdeer_channel_id",
           "description": "subdeer channel id",
           "type": "number",
@@ -148,6 +150,7 @@
     "dayjs": "^1.11.10",
     "fxd-app-core": "^1.0.47",
     "fxd-app-weibo-publish": "^1.0.12",
+    "fxd-app-x-publish": "^1.0.0",
     "fxd-sdk": "^1.0.66"
   }
 }

@@ -1,6 +1,7 @@
 import FxdApp from 'fxd-app-core';
 import { FxdSdk, getPackageInfo } from 'fxd-sdk';
 import FxdWeiboPublish from 'fxd-app-weibo-publish';
+import FxdXPublish from 'fxd-app-x-publish';
 import dayjs from 'dayjs';
 
 
@@ -117,6 +118,69 @@ export default class FxdMemoForward extends FxdApp {
                             published: false,
                             nothing_new: nothing_new,
                             output: `没有新的内容发布到微博`
+                        });
+                    }
+                }
+
+                if( this.get('to') === 'x' )
+                {
+                    let published = false;
+                    let nothing_new = true;
+                    const urlSHA = this.sdk.sha1('x:'+this.get('api_base')); // 历史发布记录文件名
+                    // 读取之前的发布记录
+                    const published_memos = await this.sdk.getValue(urlSHA) || [];
+        
+                    for( let memo of memos )
+                    {
+                        // 上一条成功发布，终止，每次只同步一条
+                        if( published ) break;
+                        if( published_memos && published_memos.includes(memo.id)) {
+                            this.log("jump", memo.id);
+                            continue;
+                        }
+                        nothing_new = false;
+                        let result = false;
+                        const extraImages= this.get('extra_images') ? this.get('extra_images').split(',')  : [];
+                        const x = new FxdXPublish();
+                        result = await x.publish(null, {
+                            content: content4x(memo.content , tags_array) + ( this.get('append_text') ? `\n\n${this.get('append_text')}` : '' ) ,
+                            images: [...memo.resourceList?.map( item => {
+                                if( String(item.type).startsWith("image") )
+                                    return item.externalLink;
+                                else
+                                    return false;
+                            }).filter( item => item ), 
+                                ...extraImages
+                            ].join(','),
+                            headless: String(this.get('headless')),
+                            user: this.get('user'),
+                            format: 'function',
+                            browser: this.get('browser'),
+                        }, 'publish');
+
+                        // 如果发布成功，则记录
+                        if ( result && result.checked ) {
+                            published = true;
+                            // 保存发布记录
+                            published_memos.push(memo.id);
+                            await this.sdk.setValue(urlSHA, published_memos);
+                            break;
+                        }
+                    }
+
+                    if( published )
+                    {
+                        return this.return({
+                            published: true,
+                            nothing_new: nothing_new,
+                            output: `有新的内容发布到X了`
+                        });
+                    }else
+                    {
+                        return this.return({
+                            published: false,
+                            nothing_new: nothing_new,
+                            output: `没有新的内容发布到X`
                         });
                     }
                 }
@@ -275,6 +339,11 @@ export default class FxdMemoForward extends FxdApp {
 }
 
 const bad_domains = ['pixabay.com','youtu.be'];
+
+function content4x( content, tags = [] )
+{
+    return content;
+}
 
 function content4weibo( content, tags = [] )
 {

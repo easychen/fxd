@@ -945,7 +945,7 @@ fxd-app-keep-live2@^1.0.2, "fxd-app-keep-live2@file:/Users/easy/Playground/fxd/p
     fxd-sdk "^1.0.59"
 
 "fxd-app-memo-forward@file:/Users/easy/Playground/fxd/packages/fxd-app-memo-forward":
-  version "1.0.8"
+  version "1.0.9"
   resolved "file:packages/fxd-app-memo-forward"
   dependencies:
     dayjs "^1.11.10"
@@ -995,12 +995,14 @@ fxd-app-weibo-publish@^1.0.12, "fxd-app-weibo-publish@file:/Users/easy/Playgroun
     dayjs "^1.11.10"
     download "^8.0.0"
 
-"fxd-app-x-publish@file:/Users/easy/Playground/fxd/packages/fxd-app-x-publish":
+fxd-app-x-publish@^1.0.0, "fxd-app-x-publish@file:/Users/easy/Playground/fxd/packages/fxd-app-x-publish":
   version "1.0.0"
   resolved "file:packages/fxd-app-x-publish"
   dependencies:
+    css-in-js-utils "^3.1.0"
     fxd-app-core "^1.0.47"
     fxd-sdk "^1.0.66"
+    ow "^2.0.0"
 
 "fxd-cli@file:/Users/easy/Playground/fxd/packages/fxd-cli":
   version "1.0.7"
