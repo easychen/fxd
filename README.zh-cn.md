@@ -20,7 +20,16 @@ Fxd 是 Flow eXtension Define 的缩写，它是一个被设计用于工作流
 
 其中每一个都是独立的 NPM Package，而且每一个 APP 都可以通过 Fxd-Cli 在命令行下调用。这样，我们只需要用 Shell 或者其他脚本，将这些 Fxd App 组合起来，就可以灵活地实现各种功能。比如你不想发布到X了，改为发布到微博。那么只需要将最后一个APP 换掉。
 
-对于不会使用命令行的用户，还可以使用兼容 Fxd 规范的客户端，比如我们正在内测的 FlowDeer，它可以通过可视化流程图的方式帮助用户设计工作流。
+一个发布微博的例子：
+
+```bash
+fxd weiboLive auth # 首次发布时需要在启动的浏览器中登录，不用每次都手动登录 
+fxd weiboPublish --content="你好呀" --self_only="true" --format="json" --headless="false"
+```
+
+也可以在遵循 FXD 规范的客户端，比如 FlowDeer 客户端中直接使用。
+
+![FlowDeer](images/image.png)
 
 # 开发环境
 

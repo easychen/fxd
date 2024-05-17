@@ -19,7 +19,16 @@ With the FXD approach, we would first encapsulate the following FXD Apps:
 
 Each of these is an independent NPM package, and each app can be invoked via the Fxd-Cli in the command line. Thus, by using Shell or other scripts to combine these FXD Apps, you can flexibly implement various functionalities. For example, if you want to switch from publishing on platform X to Weibo, you simply need to swap the last app.
 
-For users unfamiliar with using the command line, there's also a client compatible with the FXD standard, such as our currently beta-tested FlowDeer, which helps users design workflows using visual flowcharts.
+Here's an example of posting a Weibo status:
+
+```bash
+fxd weiboLive auth # The first time you post, you'll need to log in through the browser that opens. You don't need to log in manually every time.
+fxd weiboPublish --content="Hello there" --self_only="true" --format="json" --headless="false"
+```
+
+This can also be used directly in an FXD-compliant client, such as the FlowDeer client.
+
+![FlowDeer](images/image.png)
 
 # Development Environment
 
