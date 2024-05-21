@@ -82,6 +82,7 @@ Configure environment variables:
 
 - `DEFAULT_AI_CHAT_KEY`: openai/api2d key
 - `DEFAULT_AI_CHAT_BASEURL`: `https://api.openai.com` or `https://oa.api2d.net`
+- `DEFAULT_AI_CHAT_MODEL`: model, default to gpt-4o 
 
 In the `fxd-cli` directory, run:
 

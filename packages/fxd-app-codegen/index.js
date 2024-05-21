@@ -143,7 +143,7 @@ export default class FxdCodegen extends FxdApp {
         const get_function_prompt = `你是世界一流的NODE JS工程师。正在为开发FXD应用整理资料。请根据需求，从SDK和父类代码中列出可能被用到的函数列表(列出名称和参数，如 aiChat( message ) )。<SDK>${sdk_function_list}</SDK>\n<父类代码>${parent_class_content}</父类代码>\n<需求>${howto1}</需求>\n\n 为了完成需求，我们需要... ，在这个过程中，用到的函数列表如下：`;
 
         this.log(`正在思考，请稍候……`);
-        let function_to_use_text = await this.sdk.aiChat(get_function_prompt);
+        let function_to_use_text = await this.sdk.aiChat(get_function_prompt, null, process.env.DEFAULT_AI_CHAT_MODEL||"gpt-4o");
         // console.log(function_to_use_text);
         
         if (function_to_use_text.data) 
@@ -242,7 +242,7 @@ export default class FxdCodegen extends FxdApp {
 
         this.log(`正在生成代码，请稍候……`);
         // console.log( 'prompt', prompt );
-        const ret2 = await this.sdk.aiStream(prompt);
+        const ret2 = await this.sdk.aiChat(prompt, null, process.env.DEFAULT_AI_CHAT_MODEL||"gpt-4o");
         // fs.writeFileSync('ret', JSON.stringify(ret2, null, 4));
         if (ret2.data) {
             // 从中提取 <FINAL-CODE></<FINAL-CODE>

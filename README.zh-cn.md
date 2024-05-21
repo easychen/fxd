@@ -85,6 +85,7 @@ node fxd demo help
 
 - DEFAULT_AI_CHAT_KEY # openai/api2d key
 - DEFAULT_AI_CHAT_BASEURL # https://api.openai.com 或者 https://oa.api2d.net
+- DEFAULT_AI_CHAT_MODEL # 模型，默认使用 gpt-4o 
 
 在 fxd-cli 目录下，运行：
 
