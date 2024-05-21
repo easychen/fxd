@@ -75,7 +75,27 @@ node fxd core help
 node fxd demo help
 ```
 
+## fxd app 代码生成
+
 你可以为 `fxd-app-demo` 创建副本进行修改调试，完成后，`npm publish fxd-app-your-app` 发布即可在所有支持FXD规范的软件中使用。
+
+2024/05/21 开始引入 codegen app 来初始化  fxd app，使用方式如下：
+
+配置环境变量：
+
+- DEFAULT_AI_CHAT_KEY # openai/api2d key
+- DEFAULT_AI_CHAT_BASEURL # https://api.openai.com 或者 https://oa.api2d.net
+
+在 fxd-cli 目录下，运行：
+
+```bash
+./fxd codegen
+```
+
+按提示操作即可。
+
+https://github.com/easychen/fxd/assets/1294760/c6f995f8-b5ae-4db4-9265-8d6ebb4b781c
+
 
 ## 在FlowDeer中调试
 
