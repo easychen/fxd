@@ -1,0 +1,164 @@
+# 基本结构
+FXD App是一个标准的NPM Package，在`package.json`中添加额外字段描述输入输出参数和格式。主要内容包括：
+
+1. `meta`属性包含四部分：
+   - `for`: 标识是否为fxd应用。
+   - `author_uid`: 用于识别开发者。
+   - `args`: 描述输入参数。
+   - `output`: 描述输出参数。
+
+# `args`属性
+- 以方法作为一级分组，每个分组包含具体字段。
+- 字段描述包括：
+  - `name`: 字段名。
+  - `cn_name`: 中文名称。
+  - `description`: 字段详细说明。
+  - `type`: 类型 (`string`, `boolean`, `number`)。
+  - `enum`: 枚举值，选填。
+  - `required`: 是否必填。
+  - `default`: 默认值。
+  - `example`: 示例值。
+
+# `output`属性
+- 和`args`类似，采用方法作为一级分组。
+- 包含成功 (`success`) 和失败 (`fail`) 两种情况。
+
+# 典型`package.json`示例
+```json
+{
+  "name": "fxd-app-fetch",
+  "displayName": "Fxd网页内容获取",
+  "description": "根据输入的url抓取网页内容，并进行优化和格式转换",
+  "version": "1.0.8",
+  "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "meta": {
+    "for": "fxd",
+    "author_uid": 1,
+    "args": {
+      "main": {
+        "url": {
+          "name": "url",
+          "description": "要获取的页面 URL",
+          "type": "string",
+          "required": true,
+          "default": "https://ftqq.com",
+          "example": "https://www.example.com"
+        }
+      },
+      "json": {
+        "url": {
+          "name": "url",
+          "description": "要获取的页面 URL",
+          "type": "string",
+          "required": true,
+          "default": "https://ftqq.com",
+          "example": "https://www.example.com"
+        }
+      }
+    },
+    "output": {
+      "main": {
+        "success": {
+          "content_format": {
+            "name": "content_format",
+            "type": "string",
+            "description": "返回数据格式，包括raw/markdown/html/text",
+            "example": "html"
+          }
+        },
+        "fail": {
+          "error": {
+            "name": "error",
+            "type": "string",
+            "description": "错误信息",
+            "example": "获取页面内容失败"
+          }
+        }
+      },
+      "json": {
+        "success": {
+          "content": {
+            "name": "content",
+            "type": "string",
+            "description": "返回的JSON数据",
+            "example": "https://www.example.com"
+          }
+        },
+        "fail": {
+          "error": {
+            "name": "error",
+            "type": "string",
+            "description": "错误信息",
+            "example": "获取页面内容失败"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+# 入口
+FXD自动加载模块的`default export`，需对外暴露`run`方法，接受以下参数：
+```javascript
+async run(args, opts, command, cli_path)
+```
+
+典型的FXD应用示例：
+```javascript
+export default class FxdSimple {
+    async main(args, opts, command, cli_path) {
+        // 处理业务逻辑
+    }
+}
+```
+
+# extend 已有应用来实现功能的例子
+
+```javascript
+import FxdCheckChan from 'fxd-app-check-chan';
+import { FxdSdk, getPackageInfo } from 'fxd-sdk';
+
+export default class FxdDouyinCoutn extends FxdCheckChan {
+    constructor() {
+        super();
+        const oldArgsSettings = this.sdk.args;
+        this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
+        this.sdk.args = this.mergeProps(oldArgsSettings,[
+            'watch',
+            'main|check|watch.-selectors,prejs,prejs_args,preplay,list'
+        ]);
+    }
+
+    async main(args, opts, command) {
+        opts['selectors'] = `[data-e2e='user-tab-count']`;
+        return await this.watch(args, opts, 'watch');    
+    }
+}
+```
+
+# 混搭组合已有应用实现功能的例子
+
+```javascript
+import FxdWeiboPublish from 'fxd-app-weibo-publish'; // 首先 import进来
+
+async main(args, opts, command) {
+    this.setDeaultOpts(opts);
+    this.setDeaultCommand(command);
+    this.format = this.get('format');
+    // ...
+    // 这里要发布微博了
+    const weibo_publish = new FxdWeiboPublish();// 创建对象
+    result = await weibo_publish.publish( // 调用 publish 方法
+        null, // 第一个参数留空，第二个参数参入调用参数 
+        { 
+            content: 微博内容,
+            headless: String('false'), // ⚠️ 特别注意这里的参数需要String类型，否则不生效
+            user: this.get('user'),
+        }, 
+        'publish' // 第三个参数固定为被调用的方法名，也就是 publish
+    );
+}
+```

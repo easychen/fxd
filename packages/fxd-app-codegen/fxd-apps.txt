@@ -1,0 +1,115 @@
+fxd-app-fetch  [method] [options]
+
+Method - main:
+ --url <string> 要获取的页面 URL (default: https://ftqq.com) (required)
+ --format <string>      返回数据格式 (default: text)
+ --output <string>      输出数据格式 (default: markdown)
+ --timeout <number>     超时时间 (default: 5000)
+ --headless <boolean>   是否启用后台模式 (default: true)
+ --browser <string>     浏览器类型 (default: chromium)
+ --user <string>        用户名 (default: default)
+ --wait_type <string>   等待类型 (default: domcontentloaded)
+ --delay <number>       延迟时间，单位是毫秒 (default: 0)
+
+---
+
+fxd-app-check-chan  [method] [options]
+
+Method - main:
+ --url <string> 要打开的页面 URL (required)
+ --headless <boolean>   是否使用后台模式 (default: true)
+ --browser <string>     浏览器类型 (default: chromium)
+ --selectors <string>   要检测的元素的 CSS 选择器,多个用逗号分隔 (default: body) (required)
+ --prejs <string>       页面加载完成后执行的自定义 JavaScript 代码
+ --prejs_args <string>  自定义 JavaScript 代码的参数
+ --preplay <string>     页面加载完成后执行的自定义 Playwright 代码
+ --timeout <number>      Playwright 操作超时时间,单位毫秒 (default: 60000)
+ --list <boolean>        选择器是否返回元素列表 (default: false)
+ --user <string>        浏览器使用的用户目录 (default: default)
+ --format <string>      返回的数据格式 (default: text)
+ --wait_type <string>   等待元素出现的方式 (default: domcontentloaded)
+
+---
+
+fxd-app-gpt-bat  [method] [options]
+
+Method - main:
+ --char_count <number>  每次处理的字符数 (default: 1000)
+ --prompt <string>      提示词 (required)
+ --ai_key <string>      AI密钥
+ --ai_apibase <string>  AI接口地址
+ --ai_model <string>    AI模型
+ --format <string>      返回结果格式 (default: json)
+ --content <string>     待处理的长文本 (required)
+
+ ---
+
+fxd-app-keep-live2  [method] [options]
+
+Method - main:
+ --user <string>        浏览器使用的用户目录 (default: default)
+ --timeout <number>     状态检测页面加载超时时间，单位毫秒 (default: 5000)
+ --headless <boolean>   是否使用后台模式 (default: true)
+ --format <string>      返回的数据格式 (default: text)
+ --browser <string>     浏览器类型 (default: chrome)
+
+---
+
+fxd-app-rss-fetch  [method] [options]
+
+Method - main:
+ --url <string> RSS Feed URL (default: https://ft07.com/feed) (required)
+ --only_changed <boolean>       仅返回新的entries (default: false)
+ --sendkey <string>     Server酱的sendkey，填写后检查到新entries会推送
+ --timeout <number>     超时时间(毫秒) (default: 10000)
+ --proxy <string>       代理地址
+ --format <string>      返回数据格式 (default: json)
+
+ ---
+
+ fxd-app-screenshot  [method] [options]
+
+Method - main:
+ --url <string> 要截图页面 URL (default: https://ftqq.com)
+ --width <number>       截图宽度 (default: 1920)
+ --height <number>      截图高度 (default: 1080)
+ --scale <number>       设备缩放因子 (default: 1)
+ --full_page <boolean>  是否截取整个页面 (default: false)
+ --timeout <number>     截图超时时间 (default: 30000)
+ --wait_type <string>   等待页面加载的事件 (default: load)
+ --save_path <string>   截图保存路径
+ --user <string>        登录用户名 (default: default)
+ --browser <string>     浏览器类型 (default: chrome)
+ --headless <boolean>   是否无头模式 (default: true)
+
+ ---
+
+ fxd-app-search  [method] [options]
+
+Method - main:
+ --query <string>       要搜索的关键词，如果指定了sites参数，这里就不要再重复出现网站相关关键词。 (required)
+ --sites <string>       如果传入，则只搜索匹配站点的内容。多个域名用,分隔
+ --format <string>      返回数据格式 (default: text)
+ --timeout <number>     超时时间 (default: 60000)
+ --headless <boolean>   是否启用后台模式 (default: true)
+ --user <string>        用户名 (default: default)
+ --wait_type <string>   等待类型 (default: domcontentloaded)
+ --result_limit <number>        结果数量限制 (default: 3)
+ --result_extend <boolean>      是否返回额外信息 (default: false)
+ --result_length <number>       每一条结果的Markdown长度限制 (default: 2000)
+
+---
+
+
+fxd-app-weibo-publish  [method] [options]
+
+Method - main:
+ --content <string>     微博内容 (required)
+ --headless <boolean>   是否使用后台模式 (default: true)
+ --user <string>        浏览器使用的用户目录 (default: default)
+ --format <string>      返回的数据格式 (default: text)
+ --timeout <number>      Playwright 操作超时时间,单位毫秒 (default: 60000)
+ --wait_type <string>   等待元素出现的方式 (default: domcontentloaded)
+ --images <string>      图片地址，用逗号分隔 (default: )
+ --self_only <boolean>  是否仅对自己可见 (default: false)
+ --browser <string>     浏览器类型 (default: chrome)

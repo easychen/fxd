@@ -71,6 +71,30 @@ export class FxdSdk {
         this.ai = new Api2d(key, api_base);
     }
 
+    async aiEmbedding( text, model = 'text-embedding-3-small' )
+    {
+        if( !this.ai )
+        {
+            // 检查是否存在默认设置
+            const settings = this.loadKV('settings.json');
+            if( settings.DEFAULT_AI_CHAT_KEY )
+            {
+                this.ai = new Api2d(settings.DEFAULT_AI_CHAT_KEY, settings.DEFAULT_AI_CHAT_BASEURL || null);
+            }
+        }
+        if( !this.ai ) return { error: 'ai api not set' };
+        const response = await this.ai.embeddings({
+            input: text,
+            model,
+        });
+
+        if( response.data[0] && response.data[0].embedding )
+            return response.data[0].embedding;
+        
+        return false;
+
+    }
+
     async aiStream( messages, data = null, model= 'gpt-3.5-turbo' )
     {
         return await this.aiChat( messages, data, model, (chars, char) => {

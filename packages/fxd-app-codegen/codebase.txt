@@ -1,0 +1,2640 @@
+<package name="fxd-cli" version="1.0.7" description="undefined">
+#!/usr/bin/env node
+
+import chalk from 'chalk';
+import minimist from 'minimist';
+import humps from 'humps';
+import path, { dirname } from 'path';
+import { execSync, exec as execCb } from 'child_process';
+import { promisify } from 'util';
+const exec = promisify(execCb);
+
+async function checkYarnInstallation() {
+    try {
+        const { stdout } = await exec('yarn --version');
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+import { fileURLToPath, pathToFileURL } from 'url';
+import fs from 'fs';
+import os from 'os';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// const DEV = true || process.env.NODE_ENV === 'development';
+
+// 读取参数
+const { _: args, ...opts } = minimist(process.argv.slice(2));
+let [command, ...params] = args;
+// ./fxd _login main  --user=easy -p "book/23423432/ 34234"
+//       ^     ^     ^     ^     ^     ^     ^     ^
+//      command params opts    opts  opts  opts  opts 
+
+// console.log(chalk.green('fxd-cli'), command, params, opts);
+
+// 如果命令不存在，则默认为 core help
+if( !command )
+{
+    command = 'core';
+    params = ['help'];
+}
+
+// 如果命令以 _ 开头，则为内部命令，转向 core
+if( command.startsWith('_') )
+{
+    // 内部命令
+    params = [command.slice(1), ...params];
+    command = 'core';
+}
+
+// 检查 fxd_app_${command} module 是否存在（ESM语法）
+let module;
+const formattedCommand = humps.decamelize(command, { separator: '-' });
+const packageName = `fxd-app-${formattedCommand}`;
+try {
+    
+    // 调试模式则加载本地文件
+    const paths = [];
+    // 上级目录
+    paths.push(path.join(__dirname, '..', packageName , 'index.js'));
+    // 开发目录（独立项目）
+    paths.push(`~/Code/gitcode/${packageName}/index.js`);
+    
+    // npm 全局安装目录，通过 npm root -g 实时获取，使用 ESM 语法
+    const npmGlobalRoot = execSync('npm root -g').toString().trim();
+    paths.push(path.join(npmGlobalRoot, packageName, 'index.js'));
+
+    // 作为 fxd-cli 全局安装的子目录被安装
+    paths.push(path.join(npmGlobalRoot, 'fxd-cli', 'node_modules', packageName, 'index.js'));
+
+    // 检查 yarn 命令是否存在
+    if( await checkYarnInstallation() )
+    {
+        // yarn 全局安装目录，通过 yarn global dir 实时获取，使用 ESM 语法
+        const yarnGlobalRoot = execSync('yarn global dir').toString().trim();
+        paths.push(path.join(yarnGlobalRoot, 'node_modules', packageName, 'index.js'));
+
+        // 作为 fxd-cli 全局安装的子目录被安装
+        paths.push(path.join(yarnGlobalRoot,'node_modules', 'fxd-cli', 'node_modules', packageName, 'index.js'));
+    }
+
+    // 挨个尝试，如果都不存在，这为 `${packageName}`
+    let thePath = `${packageName}`;
+    // 循环 paths，如果存在，则赋值给 thePath
+    for (const p of paths) {
+        if (fs.existsSync(p)) {
+            thePath = p;
+            break;
+        }
+    }
+
+    const app = await import(pathToFileURL(thePath));
+    module = new app.default();
+    // 如果存在 module.run 方法，则执行
+    if (module && module.run) {
+
+        // params, opts, command, cli_path
+        await module.run(params, opts, params[0], __dirname);
+    }else
+    {
+        console.log("no module.run", module);
+    }
+}    
+catch(e)
+{
+    console.log("e", e);
+    console.error(chalk.red(`fxd-cli: command "${command}(${packageName})" not found`));
+    process.exit(1);
+}
+
+
+
+
+</package>
+<package name="fxd-sdk" version="1.0.66" description="undefined">
+import fetch from 'node-fetch';
+import fs from 'fs';
+import os from 'os';
+import { readPackageSync } from 'read-pkg';
+import { JsonDB, Config } from 'node-json-db';
+import crypto from 'crypto';
+import querystring from 'querystring';
+import path, { dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { promisify } from 'util';
+import { io } from "socket.io-client";
+import { exec as execCallback } from 'child_process';
+const exec = promisify(execCallback);
+import Api2d from 'api2d';
+import nodeFetch from 'node-fetch';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+
+const WS_PORT = process.env.WS_PORT || 55106;
+const API_URL = process.env.API_URL || 'https://api.apijia.cn';
+// const API_URL = process.env.API_URL || 'http://dd.ftqq.com:3333';
+
+export class FxdSdk {
+    // 构造函数
+    constructor(packageInfo = null) {
+        // console.log("FxdSdk constructor", packageInfo);
+        // 读取 package.json 中的元信息
+        if (!packageInfo) packageInfo = readPackageSync();
+
+        // packageInfo {
+        //     name: 'fxd-cli',
+        //     version: '1.0.0',
+        //     main: 'index.js',
+        //     private: 'true',
+        //     license: 'PolyForm-Noncommercial',
+        //     dependencies: {
+        //       chalk: '^5.3.0',
+        //       'fxd-sdk': '1.0.6',
+        //       humps: '^2.0.1',
+        //       minimist: '^1.2.8'
+        //     },
+        //     type: 'module',
+        //     readme: 'ERROR: No README data found!',
+        //     _id: 'fxd-cli@1.0.0'
+        //   }
+
+        this.apiBase = API_URL;
+        this.token = null;
+        this.loadToken();
+        this.name = packageInfo.name || this.constructor.name;
+        this.displayName = packageInfo.displayName || this.name ;
+        this.args = packageInfo.meta?.args || [];
+        this.packageVersion = packageInfo.version;
+        const dbFolder = path.resolve(getHomeDir(), 'db');
+        // 如果 dbFile 不存在，则创建(递归创建目录)
+        if (!fs.existsSync(dbFolder)) {
+            fs.mkdirSync(dbFolder, { recursive: true });
+        }
+        const dbFile = path.resolve(dbFolder, `${this.name}.json`);
+        if (!fs.existsSync(dbFile)) {
+            fs.writeFileSync(dbFile, '{}');
+        }
+        
+        const dbConfig = new Config(dbFile, true, true);
+        this.db = new JsonDB(dbConfig);
+        this.socket = null;
+        this.ai = null;
+    }
+
+    setAiApi( key, api_base = null )
+    {
+        this.ai = new Api2d(key, api_base);
+    }
+
+    async aiStream( messages, data = null, model= 'gpt-3.5-turbo' )
+    {
+        return await this.aiChat( messages, data, model, (chars, char) => {
+            this.wslog(chars, true);
+        });
+    }
+
+    async aiChat( messages, data = null, model= 'gpt-3.5-turbo', callback = null )
+    {
+        if( !this.ai )
+        {
+            // 检查是否存在默认设置
+            const settings = this.loadKV('settings.json');
+            if( settings.DEFAULT_AI_CHAT_KEY )
+            {
+                this.ai = new Api2d(settings.DEFAULT_AI_CHAT_KEY, settings.DEFAULT_AI_CHAT_BASEURL || null);
+            }
+        }
+        if( !this.ai ) return { error: 'ai api not set' };
+        
+        messages = typeof messages === 'string' ? [{
+            'role': 'user',
+            'content': messages,
+        }] : messages;
+
+        // 如果 data 是一个 object，那么将messages第一条内容的content中的 {{datakey}} 替换为 data.value
+        if( data && typeof data === 'object' )
+        {
+            for( const key of Object.keys(data) )
+            {
+                messages[0].content = messages[0].content.replace(`{{${key}}}`, data[key]);
+            }
+        }
+
+        const ret = await this.ai.completion({
+            messages,
+            stream: true,
+            onMessage: ( chars, char ) => {
+              if( callback ) callback(chars, char);
+            },
+            onEnd: ( chars ) => {
+                if( callback ) callback(chars);
+            }
+        });
+        return { message: 'success', data: ret };
+    }
+
+    async wslog( message, replace = false )
+    {
+        // 如果 messsage 是 object，则转为 json 字符串
+        if( typeof message === 'object' )
+        {
+            message = JSON.stringify(message, null, 2);
+        }
+        
+        
+        // 如果设置了 WSLOG_TO_FILE 环境变量，则将消息写入文件
+        if( process.env.WSLOG_TO_FILE )
+        {
+            // WSLOG_TO_FILE 就是文件名
+            const file = path.join(getHomeDir(), process.env.WSLOG_TO_FILE);
+            // 最新的内容置于最前面，仅保留最新的100条
+            const content = fs.existsSync(file) ? fs.readFileSync(file, { encoding: 'utf8' }) : '';
+            const lines = content.split('\n');
+            lines.unshift(message);
+            const newContent = lines.slice(0, 100).join('\n');
+            fs.writeFileSync(file, newContent);
+            return true;
+        }
+        
+        
+        const channel = replace ? 'char' : 'log';
+        const socket = io(`http://localhost:${WS_PORT}`);
+        return new Promise((resolve, reject) => {
+            socket.on('connect', () => {
+                socket.emit(channel, message);
+                socket.disconnect();
+                socket.close();
+                resolve(true);
+            });
+            socket.on('connect_error', (error) => {
+                socket.disconnect();
+                socket.close();
+                resolve(false);
+            });
+            socket.on('connect_timeout', (timeout) => {
+                socket.disconnect();
+                socket.close();
+                resolve(false);
+            });
+            socket.on('error', (error) => {
+                socket.disconnect();
+                socket.close();
+                resolve(false);
+            }
+            );
+        });
+    }
+
+
+    // set value
+    async setValue(key, value, overwrite = true) {
+        // 如果 key 不以 / 开头，则自动添加
+        if (!key.startsWith('/')) {
+            key = `/${key}`;
+        }
+        return await this.db.push(key, value, overwrite);
+    }
+
+    // get value
+    async getValue(key) {
+        try {
+            if (!key.startsWith('/')) {
+                key = `/${key}`;
+            }
+            return await this.db.getData(key);
+        } catch (error) {
+            // 如果 DEBUG 环境变量为 true，则打印错误信息
+            if (process.env.DEBUG)
+                console.log("getValue error", error);
+            
+            return false;
+        }
+    }
+
+    // set token
+    setToken(token) {
+        this.token = token;
+    }
+
+    saveKV(filename, key, value) {
+        const content = this.loadFile(filename);
+        const contentObject = content ? JSON.parse(content) : {};
+        const newObject = Object.assign(contentObject, {[key]: value});
+        this.saveFile(filename, JSON.stringify(newObject));
+        return newObject;
+    }
+
+    loadKV(filename, key = false) {
+        const content = this.loadFile(filename);
+        const contentObject = content ? JSON.parse(content) : {};
+        if( !key ) 
+            return contentObject;
+        else
+            return contentObject[key] === undefined ? null : contentObject[key];
+    }
+
+    saveFile(filename, content) {
+        const fold = getHomeDir();
+        const file = path.join(fold, filename);
+        if (!fs.existsSync(fold)) {
+            fs.mkdirSync(fold);
+        }
+        fs.writeFileSync(file, content);
+    }
+
+    loadFile(filename) {
+        const file = path.join(getHomeDir(), filename);
+        if (fs.existsSync(file)) {
+           return fs.readFileSync(file, { encoding: 'utf8' });
+        }else
+        {
+            return false;
+        }
+    }
+
+    // save token
+    saveToken(token) {
+        // 保存到 ~/.fxd/token
+        this.saveFile('token', token);
+    }
+
+    // load token
+    loadToken() {
+        this.token = this.loadFile('token');
+    }
+
+    cleanToken() {
+        const file = path.join(getHomeDir(), 'token');
+        if (fs.existsSync(file)) {
+            fs.unlinkSync(file);
+        }
+        this.token = null;
+    }
+
+    // 对 sheet 目录进行文件管理：
+    // list / read / write / delete
+    listSheet() {
+        const sheetDir = path.join(getHomeDir(), 'sheet');
+        if (!fs.existsSync(sheetDir)) {
+            fs.mkdirSync(sheetDir, { recursive: true });
+        }
+        const files = fs.readdirSync(sheetDir).filter(file => file.endsWith('.json')); // 过滤掉非 .json 文件
+        
+        // 按照修改时间逆序排序
+        files.sort((a, b) => {
+            const statA = fs.statSync(path.join(sheetDir, a));
+            const statB = fs.statSync(path.join(sheetDir, b));
+            return statB.mtimeMs - statA.mtimeMs;
+        });
+        // 用正则将文件名中的.json 后缀去掉
+        const ret = files.map(file => file.replace(/\.json$/, ''));
+        return ret;
+    }
+
+    loadSheet(sheetName) {
+        const sheetDir = path.join(getHomeDir(), 'sheet');
+        const file = path.join(sheetDir, `${sheetName}.json`);
+        if (fs.existsSync(file)) {
+            return jsonDecode(fs.readFileSync(file, { encoding: 'utf8' }));
+        } else {
+            return false;
+        }
+    }
+
+    saveSheet(sheetName, content) {
+        
+        const json = JSON.stringify(content, null, 4);
+        const sheetDir = path.join(getHomeDir(), 'sheet');
+        const file = path.join(sheetDir, `${path.basename(sheetName)}.json`);
+        if (!fs.existsSync(sheetDir)) {
+            fs.mkdirSync(sheetDir);
+        }
+        fs.writeFileSync(file, json);
+        // 检测是否成功
+        return fs.existsSync(file) && fs.readFileSync(file, { encoding: 'utf8' }) === json ;
+    }
+
+    removeSheet(sheetName) {
+        const sheetDir = path.join(getHomeDir(), 'sheet');
+        const file = path.join(sheetDir, `${sheetName}.json`);
+        if (fs.existsSync(file)) {
+            fs.unlinkSync(file);
+        }
+        return !fs.existsSync(file);
+    }
+
+    listVar()
+    {
+        // 首先读取环境变量的Key
+        const env = Object.keys(process.env);
+        env.sort();
+        const settings = Object.keys(this.loadKV('settings.json'));
+        settings.sort();
+        // 然后读取sheet目录下的文件，及其字段
+        const fields = {};
+        const sheetDir = path.join(getHomeDir(), 'sheet');
+        if (fs.existsSync(sheetDir)) {
+            // 遍历 sheet 目录下的所有.json文件
+            const files = fs.readdirSync(sheetDir).filter(file => file.endsWith('.json')); // 过滤掉非 .json 文件
+            for( const file of files )
+            {
+                const sheetName = file.replace(/\.json$/, '');
+                // 用 fs 读取文件内容
+                const content = fs.readFileSync(path.join(sheetDir, file), { encoding: 'utf8' });
+                const json = jsonDecode(content);
+                if( json.rows )
+                {
+                    fields[sheetName] = [];
+                    // 遍历 rows，获取所有的键值对的key
+                    for( const row of json.rows )
+                    {
+                        for( const key of Object.keys(row) )
+                        {
+                            if( !fields[sheetName].includes(key) ) fields[sheetName].push(key);
+                        }
+                    }
+                }
+            }
+        }
+
+        return { env, fields, settings };
+
+    }
+
+    // _request
+    async _request(method, uri, data) {
+        const url = `${this.apiBase}${uri}`;
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        };
+        if (this.token) {
+            headers['Authorization'] = `Bearer ${this.token}`;
+        }
+        const options = {
+            method,
+            headers,
+        };
+        if (data && method !== 'GET') {
+            options.body = JSON.stringify(data);
+        }
+
+        const response = await myFetch(url, options);
+        return await response.json();
+    }
+
+    // profile
+    async profile() {
+        return await this._request('GET', '/profile');
+    }
+
+    // flow
+    async flow(id) {
+        return await this._request('GET', `/fxd/flow/detail?id=${id}`);
+    }
+
+    async cron() {
+        const ret = await this._request('GET', '/fxd/task/index');
+        // console.log(ret);
+        if( ret && ret.data && ret.data.length > 0 )
+        {
+            return ret.data.filter( item => item.with_cron > 0 && item.is_active > 0 );
+        }else
+        {
+            if( ret && ret.error ) this.wslog(ret.error);
+            return [];
+        }
+    }
+
+    async shortcuts() {
+        const ret = await this._request('GET', '/fxd/task/index');
+        if( ret && ret.data && ret.data.length > 0 )
+        {
+            return ret.data.filter( item => item.shortcut && item.is_active > 0 );
+        }else
+        {
+            return [];
+        }
+    }
+
+    sha1(string) {
+        return crypto.createHash('sha1').update(string).digest('hex');
+    }
+
+    async scSend(text, desp = '', key = null) {
+
+        if( !key )
+        {
+            // 检查是否存在默认设置
+            const settings = this.loadKV('settings.json');
+            if( settings.DEFAULT_SENDKEY )
+            {
+                key = DEFAULT_SENDKEY;
+            }
+        }
+        if( !key ) return { error: 'ai api not set' };
+
+        const postData = querystring.stringify({ text, desp });
+        const url = `https://sctapi.ftqq.com/${key}.send`;
+
+        const response = await myFetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': Buffer.byteLength(postData)
+            },
+            body: postData
+        }, 1000 * 5);
+
+        const data = await response.text();
+        return {'message': 'success', data};
+    }
+
+    async apprise(url, title, body, type = 'markdown') {
+        // const cmd = `apprise -t '${this.sdk.displayName} 有新的动态' -b '${markdown_body}' -i 'markdown' '${apprise_server_url}'`;
+        //             const { stdout, stderr } = await exec(cmd);
+        const cmd = `apprise -t '${title}' -b '${body}' -i '${type}' '${url}'`;
+        const { stdout, stderr } = await exec(cmd);
+        return stderr ? { 'message': 'error', 'error': stderr } : { 'message': 'success', 'data': stdout };
+    }
+}
+
+export function getHomeDir() {
+    return path.join(os.homedir(), '.fxd');
+}
+
+export function getDesktopPath(filePath=null) {
+    // 如果包含了 path，把它拼接到 desktop 后面
+    if( filePath && !Array.isArray(filePath) ) filePath = [filePath];
+    return filePath ? path.join(os.homedir(), 'Desktop', ...filePath) : path.join(os.homedir(), 'Desktop');
+    
+}
+
+export function getDirname(filePath) {
+    return dirname(fileURLToPath(filePath));
+}
+
+export function getPackageInfo(filePath) {
+    return readPackageSync({ cwd: getDirname(filePath) });
+}
+
+// myFetch 添加 try catch 和 超时设置
+export async function myFetch(url, options, timeout = 1000 * 5) // ms
+{
+    let controller = new AbortController();
+    const id = setTimeout(() => {
+        controller.abort()
+        controller = new AbortController()
+    }, timeout);
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+        });
+        return response;
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            console.log('fetch timeout', timeout, 'ms');
+        } else {
+            throw error;
+        }
+    } finally {
+        clearTimeout(id);
+    }
+}
+
+export function jsonDecode(str) {
+    try {
+        return JSON.parse(str);
+    } catch (error) {
+        return false;
+    }
+}
+
+export function findCommands(inputString) {
+    const regex = /\[(FXD_[^\]]+)\]/gm;
+    let matches = [];
+    let match;
+
+    while ((match = regex.exec(inputString)) !== null) {
+        // 这是为了避免在不匹配的位置无限循环
+        if (match.index === regex.lastIndex) {
+            regex.lastIndex++;
+        }
+
+        // 匹配到的字符串添加到数组中
+        matches.push(match[1]);
+    }
+
+    return matches;
+}
+
+// 支持 timeout 和 http_proxy 参数
+export async function pFetch (url, options)
+{
+    return new Promise( async (resolve, reject) => {
+        const { timeout, http_proxy, ...otherOptions } = options;
+        const proxy = http_proxy || process.env.HTTP_PROXY || process.env.http_proxy || false;
+        const data = {
+        ...otherOptions,
+        ...( proxy? { "agent": new HttpsProxyAgent(proxy) } : {})
+        };
+        const controller = new AbortController();
+        const timeout_handle = setTimeout(() => {
+            controller.abort();
+            resolve(false);
+        }, timeout);
+
+        try {
+            const ret = await nodeFetch(url, {data, signal: controller.signal});
+            if( timeout_handle ) clearTimeout(timeout_handle);
+            resolve(ret);
+        } catch (error) {
+            throw error;
+        }
+    });
+};
+
+</package>
+<package name="fxd-app-core" version="1.0.48" description="undefined">
+import chalk from 'chalk';
+import { FxdSdk, getPackageInfo, findCommands, getHomeDir } from 'fxd-sdk';
+import inquirer from 'inquirer';
+import child_process from 'child_process';
+import fs from 'fs';
+import path, { relative } from 'path';
+import humps from 'humps';
+import _ from 'lodash';
+import clipboard from 'clipboardy';
+
+// 应用程序核心类，供其他应用程序继承
+export default class FxdApp {
+    constructor() {
+        this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
+        this.lastOpts = {};
+        this.lastCommand = null;
+    }
+
+    run(params, opts, raw = false, cli_path = null) {
+        if (!raw) {
+            const warppedArgv = process.argv.slice(2).map(arg => arg.includes('=') ? arg.replace(/(.*)=(.*)/, '$1="$2"') : arg);
+            const originalLine = warppedArgv.join(' ').replace(/\-\-save=.*|\-\-save/i, '').trim();
+
+            // 如果包含 --save 参数，则保存命令到 ~/.fxd/commands.json
+            if (opts['save']) {
+                let commands = [];
+                const commandFile = path.resolve(getHomeDir(), 'commands.json');
+                if (fs.existsSync(commandFile)) {
+                    const commandList = fs.readFileSync(commandFile, 'utf-8');
+                    commands = commandList ? JSON.parse(commandList) : [];
+                }
+                const index = commands.findIndex(item => item.cmd == originalLine);
+                console.log("index", index);
+                const { save, ...restOpts } = opts;
+                if (index < 0) commands.push({
+                    cmd: originalLine,
+                    meta: {
+                        app: process.argv[2],
+                        params,
+                        opts: restOpts
+                    }
+                });
+                fs.writeFileSync(commandFile, JSON.stringify(commands, null, 4));
+                console.log(chalk.blue(`Saved as ${commands.length}`));
+                return true;
+            }
+        }
+
+
+        const [command, ...args] = params;
+        // console.log("command", command, "args", args);
+        // 如果当前对象有 command 方法，则执行
+        try {
+            if (this[command]) {
+                const cmd = this[command](args, opts, command, cli_path);
+                if(cmd?.catch) cmd.catch( error =>
+                    {
+                        console.log( chalk.red("error in 1") )
+                        throw error;
+                        return false; 
+                    } );
+            } else {
+                // 应用的默认入口方法
+                if (this['main']) {
+                    const cmd = this['main'](args, opts, 'main')
+                    if(cmd?.catch) cmd.catch( error =>{
+                        console.log( chalk.red("error in 2") )
+                        throw error;
+                        return false; 
+                    });
+                } else {
+                    console.error(chalk.red(`fxd-cli: command "${command}" not found`));
+                    process.exit(1);
+                }
+            }
+
+        } catch (error) {
+            console.log( chalk.red("error in 3") )
+            throw error;
+            return false;
+        }
+
+        // console.log('run', command, args , opts);
+    }
+
+    install(args, opts, _command, cli_path = null) {
+        // 在当前目录通过 npm 安装package
+        const packageName = args[0];
+        if (!packageName) {
+            console.log(chalk.red("package name is required"));
+            return false;
+        }
+        // 将全部参数都传递给 npm install，再加上 opts
+        const install_path  = cli_path ? cli_path : process.cwd();
+        const command = `npm install ${args.join(' ')} ${Object.keys(opts).map(key => `--${key}=${opts[key]}`).join(' ')} `;
+        console.log(chalk.blue(command));
+        child_process.execSync(command, { stdio: 'inherit', cwd:install_path });
+        return true;
+    }
+
+    list(args, opts) {
+        const commandFile = path.resolve(getHomeDir(), 'commands.json');
+        if (!fs.existsSync(commandFile)) {
+            console.log(chalk.red("No commands saved"));
+            return false;
+        }
+        const commandList = fs.readFileSync(commandFile, 'utf-8');
+        const commands = commandList ? JSON.parse(commandList) : [];
+        // 彩色输出，加上 index 
+        commands.forEach((command, index) => {
+            console.log(chalk.green(`${index + 1}.`) + chalk.blue(`fxd ${command.cmd}`));
+        }
+        );
+        return true;
+    }
+
+    test(args, opts) {
+        const name = this.get('name', opts, 'test');
+        console.log("name", name);
+    }
+
+    exe(index) {
+        return this.exec(index);
+    }
+
+    exec(index) {
+        const commandFile = path.resolve(getHomeDir(), 'commands.json');
+        if (!fs.existsSync(commandFile)) {
+            console.log(chalk.red("No commands saved"));
+            return false;
+        }
+        const commandList = fs.readFileSync(commandFile, 'utf-8');
+        const commands = commandList ? JSON.parse(commandList) : [];
+        const command = commands[index - 1] || false;
+        if (command) {
+            console.log(chalk.blue(`fxd ${command.cmd}`));
+            child_process.execSync(`./fxd ${command.cmd}`, { stdio: 'inherit' });
+        }
+    }
+
+    async login(args, opts) {
+        let { token, format } = opts;
+        if( format ) this.format = format;
+        if (!token) {
+            // 交互式输入
+            const answers = await inquirer.prompt([
+                {
+                    type: 'password',
+                    name: 'token',
+                    message: 'Please input your token',
+                },
+            ]);
+            token = answers.token;
+        }
+        if (token) {
+            this.sdk.setToken(token);
+            const ret = await this.sdk.profile();
+            // console.log("ret",ret);
+            if (ret) {
+                if (ret.errors) {
+                    this.echoError(ret.errors[0].message);
+                    process.exit(1);
+                }
+                else {
+                    if (ret.nickname) {
+                        this.log(chalk.green(`login success, welcome ${ret.nickname}`));
+                        // 将 token 保存到 ~/.fxd/token
+                        this.sdk.saveToken(token);
+                        this.return(ret);
+                    }
+                }
+            }
+        }
+    }
+
+    async logout() {
+        this.sdk.cleanToken();
+        console.log(chalk.green(`logout success`));
+    }
+
+    async profile() {
+        const ret = await this.sdk.profile();
+        console.log(JSON.stringify(ret, null, 4));
+        // await this.sdk.setValue('test', ['book']);
+        // console.log(await this.sdk.getValue('test'));
+    }
+
+    async cron()
+    {
+        const ret = await this.sdk.cron();
+        console.log(JSON.stringify(ret, null, 4));
+    }
+
+    async shortcuts()
+    {
+        const ret = await this.sdk.shortcuts();
+        console.log(JSON.stringify(ret, null, 4));
+    }
+
+    list_sheet(args, opts)
+    {
+        const ret = this.sdk.listSheet();
+        console.log(JSON.stringify(ret, null, 4));
+    }
+
+    load_sheet(args, opts)
+    {
+        const name = opts['name'];
+        if( !name ) this.echoError("name is required");
+        const ret = this.sdk.loadSheet(name);
+        console.log(JSON.stringify(ret, null, 4));
+    }
+
+    save_sheet(args, opts)
+    {
+        // 将 name 中的空白格替换为下划线
+        let name = opts['name'].replace(/\s/g, '_');
+        let content = opts['content'];
+        if( !name ) this.echoError("name is required");
+        if( !content ) this.echoError("content is required");
+        // 如果 content 以 base64: 开头，则表示是 base64 编码的内容
+        if( content.startsWith('base64:') )
+        {
+            content = jsonDecode(Buffer.from(content.replace('base64:', ''), 'base64').toString());
+        }
+        const ret = this.sdk.saveSheet(name, content);
+        console.log(JSON.stringify(ret, null, 4));
+    }
+
+    remove_sheet(args, opts)
+    {
+        const name = opts['name'];
+        if( !name ) this.echoError("name is required");
+        const ret = this.sdk.removeSheet(name);
+        console.log(JSON.stringify(ret, null, 4));
+    }
+
+    // settings_list , settings_save ; 用 sdk.saveKV、LoadKV操作存放在 settings.json 中的数据
+    settings_list(args, opts)
+    {
+        const settings = this.sdk.loadKV('settings.json');
+        console.log(JSON.stringify(settings, null, 4));   
+    }
+
+    settings_save(args, opts)
+    {
+        const key = opts['key'];
+        const value = opts['value'] || '';
+        if( !key ) this.echoError("key is required");
+        const ret = this.sdk.saveKV('settings.json', key, value);
+        console.log(JSON.stringify(ret, null, 4));
+    }
+
+    list_var(args, opts)
+    {
+        const ret = this.sdk.listVar();
+        this.log(JSON.stringify(ret, null, 4));
+        return this.return(ret);
+    }
+
+    save_last(args, opts)
+    {
+        const task_id = opts['task_id'];
+        const output = opts['output'];
+        if( output.startsWith('base64:') )
+        {
+            output = Buffer.from(content.replace('base64:', ''), 'base64').toString();
+        }
+        this.sdk.saveKV('last.json', task_id, output);
+    }
+
+    get_last(args, opts)
+    {
+        const last = this.sdk.loadKV('last.json');
+        console.log(JSON.stringify(last, null, 4));
+    }
+
+    async wslog(args, opts)
+    {
+        const message = opts['message'];
+        if( !message ) this.echoError("message is required");
+        const replace = opts['replace'] || false;
+        const ret = await this.sdk.wslog(message, replace);
+        this.log(JSON.stringify(ret, null, 4));
+        return this.return(ret);
+    }
+
+    // async test(args, opts)
+    // {
+    //     const ret = await this.sdk.aiStream('{{user}} 这个名字怎么样', {'user': '小明'});
+    //     console.log(JSON.stringify(ret, null, 4));
+    // }
+
+    // 显示错误
+    echoError(msg) {
+        if( this.format == 'json' )
+        {
+            console.log( JSON.stringify({error: msg}, null, 4) );
+        }else
+        {
+            console.log(chalk.red(msg));
+        }
+        process.exit(1);
+    }
+
+    help() {
+        const args = this.sdk.args;
+        // console.log(args);
+        // 打印下版本
+        console.log(chalk.bold('Version:'));
+        console.log(' ' + chalk.cyan(this.sdk.packageVersion));
+
+        console.log(chalk.bold('Usage:'));
+        console.log(' ' + chalk.cyan(`fxd ${this.sdk.name.replace('fxd-app-', '')}`) + ' [command] [options]');
+
+        // 将 args 按照命令进行分组，key中包含 | 的拆分为多个命令
+        const newArgs = {};
+        for( const key in args )
+        {
+            const commands = key.split('|');
+            for( const command of commands )
+            {
+                newArgs[command] = {...newArgs[command]|| {}, ...args[key]};
+            }
+        }
+        // console.log("newArgs", newArgs);
+
+        for (const key in newArgs) {
+            // 先打印命令 args[key]
+            console.log(chalk.bold(`\nCommand - ${key}:`));
+
+            Object.keys(newArgs[key]).forEach(name => {
+                const option = newArgs[key][name];
+                let line = ' ' + chalk.yellow(`--${name}`);
+
+                if (option.short) {
+                    line += `, -${option.short}`;
+                }
+
+                if (option.type) {
+                    line += ` <${chalk.blue(option.type)}>`;
+                }
+
+                line += '\t' + chalk.green(option.description);
+
+                if ('default' in option) {
+                    line += ` (default: ${chalk.magenta(option.default)})`;
+                }
+
+                if (option.required) {
+                    line += ' ' + chalk.red('(required)');
+                }
+
+                // if (option.example) {
+                //     line += ` example: ${chalk.gray(option.example)}`;
+                // }
+
+                console.log(line);
+            });
+        }
+
+
+    }
+
+    setDeaultOpts(opts) {
+        this.setDefaultOpts(opts);
+    }
+
+    setDeaultCommand(command) {
+        this.setDefaultCommand(command);
+    }
+
+    setDefaultOpts(opts) {
+        this.lastOpts = opts;
+    }
+
+    setDefaultCommand(command) {
+        this.lastCommand = command;
+    }
+
+    // 从 package.json 中获取参数
+    get(key, opts = {}, command = null) {
+        // 首先获得值，优先级依次为 传递的参数、预先保存的参数
+        let value = opts[key] || opts[humps.camelize(key)] || this.lastOpts[key] || this.lastOpts[humps.camelize(key)];
+
+        // 如果 value 以 base64: 开头，则表示是 base64 编码的内容
+        if( typeof value === 'string' && value.startsWith('base64:') )
+        {
+            value = Buffer.from(value.replace('base64:', ''), 'base64').toString();
+        }
+
+        // 检查value是否特殊符号，如果是，则按符号意义进行替换，包括3类：
+        // [FXD_CLIPBOARD] 剪贴板数据
+        // [FXD_ENV::xxx] 环境变量
+        // [FXD_FIELD::sheetname||field] 数据表字段
+        // [FXD_SHEET::sheetname] 数据表名称
+        const cmds = findCommands(value);
+        if (cmds.length > 0) {
+            // 循环 cmds ， 拆分信息。
+            // :: explore ，前边为 action ，后边为参数；参数之间用 || 分隔
+            for (const cmd of cmds) {
+                const [action, params_string] = cmd.split('::');
+                const params = params_string ? params_string.split('||') : [];
+                switch (action) {
+                    case 'FXD_CLIPBOARD':
+                        // 从剪贴板获取数据
+                        value = clipboard.readSync() || '';
+                        break;
+                    case 'FXD_ENV':
+                        // 从环境变量获取数据
+                        value = process.env[params[0]] || '';
+                        break;
+                    case 'FXD_FIELD':
+                        // 从数据表字段获取数据
+                        const sheetname = params[0];
+                        const field = params[1];
+                        if (!sheetname || !field) {
+                            this.echoError(`sheetname and field is required`);
+                        }
+                        // 从数据表中获取数据
+                        const sheet = this.sdk.loadSheet(sheetname);
+                        if (!sheet) {
+                            value = '';
+                            break;
+                        }
+
+                        let found = false;
+                        // 循环rows,获得全部 rows[i][field] 的值
+                        for( let i = 0 ; i < sheet.rows.length ; i ++ )
+                        {
+                            if( sheet.rows[i][field] )
+                            {
+                                value = sheet.rows[i][field];
+                                sheet.rows[i][field] = '';
+                                found = true;
+                                this.sdk.saveSheet(sheetname, sheet);
+                                break;
+                            }
+                        }
+
+                        if( !found ) value = '';
+                        
+                        break;
+                    case 'FXD_SHEET':
+                        value = params[0] || '';
+                        break;
+                    case 'FXD_SETTINGS':
+                        // 从 settings.json 中获取数据
+                        const settings = this.sdk.loadKV('settings.json');
+                        value = settings[params[0]] || '';
+                        break;
+                    default:
+                        value = '';
+                        break;
+                }
+            }
+        }
+        
+        // 如果 opts 不为空，且 value 存在，则保存 opts
+        if( Object.keys(opts).length > 0 && value ) this.lastOpts = opts;
+
+        // 如果 command 不为空，则保存 command
+        if( command ) this.lastCommand = command;
+        // 否则载入 lastCommand，如果不存在，则使用 main
+        else command = this.lastCommand || 'main';
+        
+        // 开始获取参数字段的定义
+        const argsObject = {};
+        for (const commandstring in this.sdk.args) {
+            // key 可能包含多个命令，如 main,test，所以需要拆分
+            const commands = commandstring.split('|');
+            commands.forEach(_command => {
+                // argsObject[_command] = this.sdk.args[commandstring];
+                // 不要赋值，要合并，避免多个命令中有相同的参数导致覆盖
+                // 使用 lodash 实现
+                argsObject[_command] = _.merge(argsObject[_command], this.sdk.args[commandstring]);
+
+            });
+        }
+
+        // console.log("argsObject", argsObject);
+
+        // if( key == 'format' )
+        //     console.log("argsObject=", argsObject, "command=", command, "key=", key, "opts=", opts , "value=", value);
+
+        if( !argsObject[command.toLowerCase()] && !value ) this.echoError(`command ${command} args not set （${key}）`);
+        const argInfo = argsObject[command.toLowerCase()] ? argsObject[command.toLowerCase()][key] : false;
+
+        // console.log("argInfo", argInfo);
+        // argInfo 就是字段定义
+        if (argInfo) {
+
+            // 处理设置了枚举值的情况
+            if (argInfo.enum && !argInfo.enum.includes(value)) {
+                // 如果存在非枚举值，则返回默认值
+                value = argInfo.default;
+            }
+            // 必填参数为空
+            if (argInfo.required && !value) {
+                this.echoError(`--${key} is required`);
+            }
+
+            switch (argInfo.type) {
+                case 'boolean':
+                    // 如果 value 不存在，则返回默认值
+                    // 如果 value 存在，但不是 true/false，则返回默认值
+                    if (!value || (value != 'true' && value != 'false')) {
+                        return argInfo.default;
+                    }
+                    else {
+                        return value == 'true' ? true : false;
+                    }
+                case 'number':
+                    return value ? Number(value) : argInfo.default;
+                default:
+                    return value || argInfo.default;
+            }
+        }else
+        {
+            // 如果字段没有定义，但是有值，则直接返回
+            // 字段定义只是为了加强规范，但是不是必须的
+            // 一些重用场景下，动态指定的参数，可能没有（对应方法的）定义
+            if( value ) return value;
+        }
+    }
+
+    // 打印日志，但是检测格式
+    log( ...args )
+    {
+        if( this.format == 'json' || this.format == 'function' )
+        {
+            // json格式不输出中间值
+        }else
+        {
+            // 非json格式直接输出
+            console.log( ...args );
+        }
+    }
+
+    return ( ret, force_silent = false )
+    {
+        // console.log( "format", this.format );
+        // json 格式在返回时，统一输出最终结果
+        if( this.format == 'json' && !force_silent)
+        {
+            console.log( JSON.stringify(ret, null, 4) );
+        }
+        return ret;
+    }
+
+    // 发布 feed 到 fxd 云端
+    async feedPublish(content, meta, is_public = true, command = null, task_title = null , task_icon = '/logo.svg') {
+        // 首先整理出 feed 需要的信息
+        // public schema = schema.create({
+        //     app_slug: schema.string({ trim: true }),
+        //     // app_icon_url 可以为空
+        //     app_icon_url: schema.string.optional({ trim: true }),
+        //     app_name: schema.string({ trim: true }),
+        //     feed_content: schema.string({ trim: true }),
+        //     feed_meta: schema.string({ trim: true }),
+        //     is_public: schema.boolean(),
+        //   })
+        const app_slug = this.sdk.name.replace('fxd-app-', '');
+        const app_name = task_title || (this.sdk.displayName + (command ? `::${command}` : ''));
+        const feed_content = content;
+        const feed_meta = JSON.stringify(meta);
+        
+        // 通过 sdk 进行发布
+        const json = await this.sdk._request('POST', '/fxd/feed/publish', {
+            app_slug,
+            app_name,
+            app_icon_url: task_icon,
+            feed_content,
+            feed_meta,
+            is_public
+        });
+
+        if( json.message == 'success' )
+        {
+            this.log(chalk.green(`feed published success`, JSON.stringify(json.data.id, null, 4)));
+            return true;
+        }else
+        {
+            this.log(chalk.red(`feed published failed`,JSON.stringify(json, null, 4)));
+            return false;
+        }
+
+
+    }
+
+    async feedRemove( id )
+    {
+        const json = await this.sdk._request('POST', '/fxd/feed/remove', {
+            id
+        });
+
+        if( json.message == 'success' )
+        {
+            console.log(chalk.green(`feed removed success`));
+            return true;
+        }else
+        {
+            console.log(chalk.red(`feed removed failed`,JSON.stringify(json, null, 4)));
+            return false;
+        }
+    }
+
+    mergeProps(oldObject, props) {
+        return mergeProps(oldObject, props);
+    }
+}
+
+
+function mergeProps(oldObject, props) {
+    const newObject = {};
+
+    for (const key in props) {
+        const prop = props[key];
+        // 如果包含 .- 则表示这一条是排除规则
+        if (prop.includes('.-')) {
+            // Handle exclusion of properties in a nested object
+            const [parentKey, excludedKeysString] = prop.split('.-');
+            const excludedKeys = excludedKeysString.split(',');
+            let childObject = false;
+            // parentKey 可能是多级的用 点号分隔
+            if (parentKey.includes('.')) {
+                const parentKeys = parentKey.split('.');
+                // childObject = oldObject.parentKeys[0].parentKeys[1]...
+                childObject = _.get(oldObject, parentKeys);
+            } else {
+                childObject = oldObject[parentKey];
+            }
+
+            if (childObject && typeof childObject === 'object') {
+                //newObject.parentKeys[0].parentKeys[1]... = _.omit(childObject, excludedKeys);
+                _.set(newObject, parentKey, _.omit(childObject, excludedKeys));
+            }
+        } else {
+            // 开始处理复制规则
+            // 从 , 开始分隔
+            const [firstFullKey, ...otherShortKeys] = prop.split(',');
+            // main.url,book → [main.url, book] 
+            // 开始根据firstFullKey 获得 parentObject
+            // firstFullKey 可能是多级的用 点号分隔
+            if (firstFullKey.includes('.')) {
+                const firstFullKeys = firstFullKey.split('.');
+                // 去掉最后一个，因为最后一个是要复制的 key
+                const firstkey = firstFullKeys.pop();
+                const allkeys = [firstkey, ...otherShortKeys];
+                // console.log('allkeys1', allkeys);
+
+                // 处理同级的 otherShortKeys
+                for (const shortKey of allkeys) {
+                    // 拼接 key数组
+                    const keys = [...firstFullKeys, shortKey];
+                    // console.log('keys', keys);
+                    // console.log('newObject before', newObject);
+                    // 使用 lodash 按key 将 oldObject 合并到 newObject
+                    _.set(newObject, keys, _.get(oldObject, keys));
+                    // console.log('newObject after', newObject);
+
+                }
+
+
+            } else {
+                // 不包含点号，意味着没有分级
+                // url,book → [url, book]
+                const allkeys = [firstFullKey, ...otherShortKeys];
+                // console.log('allkeys', allkeys);
+                for (const shortKey of allkeys) {
+                    // console.log('shortKey', shortKey, "newObject", newObject, "oldObject", oldObject);
+                    newObject[shortKey] = oldObject[shortKey]
+                }
+            }
+
+            // console.log('mergedObject', newObject);
+        }
+    }
+    return newObject;
+}
+
+function jsonDecode(jsonString) {
+    try {
+        return JSON.parse(jsonString);
+    } catch (error) {
+        return jsonString;
+    }
+}
+</package>
+<package name="fxd-app-browser" version="1.0.8" description="undefined">
+// import FxdApp from '/Users/easy/Code/gitcode/fxd/packages/fxd-app-core/index.js';
+import FxdApp from 'fxd-app-core';
+import { FxdSdk, getDirname, getHomeDir } from 'fxd-sdk';
+import { readPackageSync } from 'read-pkg';
+import path from 'path';
+import { chromium, firefox, webkit } from 'playwright';
+import chalk from 'chalk';
+
+export default class FxdBrowser extends FxdApp {
+    constructor() {
+        super();
+        this.sdk = new FxdSdk(readPackageSync({ cwd: getDirname(import.meta.url) }));
+    }
+
+    getUserDirFullPath(username) {
+        return path.resolve(getHomeDir(), 'user', username);
+    }
+
+    async getBrowserAndMore( userDirFullPath, options )
+    {
+        if( process.env.FXD_LOCAL_CHROME ) options.executablePath = process.env.FXD_LOCAL_CHROME;
+        const browserType = options.browserType  || process.env.FXD_BROWSER_TYPE || 'chromium';
+        const Browser = (browserType === 'firefox' ) ? firefox  :  ( browserType === 'webkit' ) ? webkit : chromium;
+        const browser =  await Browser.launchPersistentContext(userDirFullPath, options);
+        // 如果打开了页面，且页面为 blank，则重用页面
+        const openedPages = browser.pages().find( page => page.url() === 'about:blank' ) ;
+        const page = openedPages || await browser.newPage();
+        const context = page.context();
+
+        return { browser, page, context };
+    }
+
+    async main(args, opts, command) {
+        this.log(chalk.red("FxdBrowser 公用库，为基于无头浏览器的服务提供基础，不可直接运行"));
+        return false;
+    }
+
+    
+
+
+}
+
+
+</package>
+<package name="fxd-app-check-chan" version="1.0.27" description="undefined">
+// import FxdBrowser from '/Users/easy/Code/gitcode/fxd/packages/fxd-app-browser/index.js';
+import FxdBrowser from 'fxd-app-browser';
+import { FxdSdk, getPackageInfo } from 'fxd-sdk';
+import { diffString, diff } from 'json-diff';
+
+
+export default class FxdCheckChan extends FxdBrowser {
+    constructor() {
+        super();
+        this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
+    }
+
+    async main(args, opts, command) {
+        return await this.check(args, opts, command);
+    }
+
+    async check(args, opts, command, force_silent = false) {
+        this.setDefaultOpts(opts);
+        this.setDefaultCommand(command);
+        this.format = this.get('format');
+        
+        const ret = [];
+        let ret_texts = '';
+        let ret_htmls = '';
+        // 是否使用 headless 模式
+        const headless = this.get('headless');
+
+        // 要检测的元素 CSS 选择器，多个选择器用逗号分隔
+        const selectors = this.get('selectors') ? this.get('selectors').split(',') : ['body'];
+        // process.exit(0);
+        
+        // URL
+        const url = this.get('url');
+        if (!url) this.echoError("url is required");
+
+        const userDirFullPath = process.env.FXD_USER_DIR || this.getUserDirFullPath(this.get('user'));
+
+        const { browser, page, context } = await this.getBrowserAndMore(userDirFullPath, { headless, browserType:this.get('browser') });
+
+        page.setDefaultTimeout(this.get('timeout')); // 设置超时
+        await page.goto(url);// 打开URL
+        // console.log('goto', url);
+        await page.waitForLoadState( this.get('wait_type')); // 确保页面加载完成
+        // console.log('waitForLoadState', 'networkidle end');
+
+        // 执行自定义 playwirght 代码
+        const preplay = this.get('preplay');
+        if (preplay) {
+            // 定义一个异步函数，用于执行动态代码
+            const asyncFn = new Function('page', 'context', `return (async () => {${preplay}})();`);
+
+            // 执行异步函数
+            await asyncFn(page, context);
+        }
+
+        // 执行自定义的 js 代码
+        // @Todo 这个地方需要测试下，是否可以正常执行
+        const prejs = this.get('prejs');
+        const prejsArgs = this.get('prejs_args');
+        if (prejs) {
+            await page.evaluate(prejs, prejsArgs);
+        }
+
+        // 循环 selectors 数组，获取每个元素的 HTML、innerText
+        for (const selector of selectors) {
+            let elements = await page.locator(selector).all();
+            // console.log('elements', elements.length);
+            
+            if (!this.get('list')) elements = [elements[0]];
+            let htmls = [], texts = [];
+            // 循环每个元素，push HTML、innerText
+            for (const element of elements) {
+                if(!element) continue;
+                htmls.push(await element.innerHTML());
+                texts.push(await element.innerText());
+            }
+
+            const html = htmls.join('\n');
+            const text = texts.join('\n');
+
+            ret.push({ selector, html, text, meta: { html: htmls, text: texts } });
+
+            if (html) ret_htmls += '\n\n' + html;
+            if (text) ret_texts += '\n\n' + text;
+        }
+
+        // 关闭浏览器
+        // await context.close();
+        await browser.close();
+
+        // 输出中间数据
+        this.log('检测到的数据', JSON.stringify(ret, null, 2));
+
+        return this.return({
+            merged_html: ret_htmls,
+            merged_text: ret_texts,
+            output: ret_texts,
+            data: [...ret],
+        }, force_silent)
+    }
+
+    async watch(args, opts, command, force_silent = false) {
+        const ret = await this.check(args, opts, 'check', true); // 为了不输出结果，这里强制 force_silent 为 true
+
+        // 借用 check 命令的参数设置
+        const url = this.get('url');
+        const title = this.get('task_title') || this.sdk.displayName;
+        const icon = this.get('task_icon') || '/logo.svg';
+
+        // 切换为 watch 命令的设置
+        this.setDeaultCommand(command);
+
+        // 获取上一次的结果
+        const urlSHA = this.sdk.sha1(url);
+        const lastRet = await this.sdk.getValue(urlSHA);
+        // 保存本次结果
+        await this.sdk.setValue(urlSHA, ret);
+
+        if (!lastRet) {
+            this.log("不存在历史记录，将当前结果保存为历史记录");
+        } else {
+            // 比较两次结果
+            if (diff(lastRet, ret)) {
+                const differenceString = diffString(lastRet, ret);
+                const differenceText = diffString(lastRet, ret, { color: false });
+                this.log("检测到变动", differenceString);
+
+                const markdown_body = `\`\`\`diff
+${differenceText}
+\`\`\``;
+
+                // 如果 opts.sendkey 存在，则发送到指定的 key
+                const sendkey = this.get('sendkey');
+                if (sendkey) {
+                    const send_ret = await this.sdk.scSend(`${title} 有新的动态`, markdown_body, sendkey);
+                    this.log("存在sendkey，发送结果到Server酱", send_ret);
+                }
+
+                const apprise_server_url = this.get('apprise_server_url');
+                if (apprise_server_url)
+                {
+                    // apprise -t '你好' -b '[hello](http://ftqq.com)' -i 'markdown'  'schan://SCT1T...'
+                    // 调用命令行
+                    const send_ret = await this.sdk.apprise(apprise_server_url, `${title} 有新的动态`, markdown_body, 'markdown');
+                    this.log("存在apprise_server_url，发送结果到Apprise", send_ret);
+            
+                }
+
+                // 如果 opts.feed_publish 存在，则发布到 feed
+                const feed_publish = this.get('feed_publish');
+                if (feed_publish) {
+                    const feed_ret = await this.feedPublish( `${ret.merged_text} \n\n[链接](${url})`, ret , this.get('feed_as_public'), command, title, icon);
+
+                    this.log("发布结果到feed列表", feed_ret);
+                }
+                
+
+                return this.return({
+                    "message": "检测到变动",
+                    "diff": differenceText,
+                    "action": "changed",
+                    "data": ret,
+                    "output": ret.merged_text,
+                }, force_silent);
+            } else {
+                this.log("目标数据没有变化");
+                return this.return({ "message": "目标数据没有变化", "action": "unchanged", "output": ret.merged_text }, force_silent);
+            }
+        }
+    }
+}
+
+
+</package>
+<package name="fxd-app-douyin-count" version="1.0.0" description="undefined">
+// import FxdCheckChan from '/Users/easy/Code/gitcode/fxd/packages/fxd-app-check-chan/index.js';
+import FxdCheckChan from 'fxd-app-check-chan';
+import { FxdSdk, getPackageInfo } from 'fxd-sdk';
+
+export default class FxdDouyinCoutn extends FxdCheckChan {
+    constructor() {
+        super();
+        const oldArgsSettings = this.sdk.args;
+        this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
+        this.sdk.args = this.mergeProps(oldArgsSettings,[
+            'watch',
+            'main|check|watch.-selectors,prejs,prejs_args,preplay,list'
+        ]);
+    }
+
+    async main(args, opts, command) {
+        opts['selectors'] = `[data-e2e='user-tab-count']`;
+        return await this.watch(args, opts, 'watch');    
+    }
+}
+
+
+</package>
+<package name="fxd-app-fetch" version="1.0.11" description="根据输入的url抓取网页内容，并进行优化和格式转换">
+// import FxdBrowser from '/Users/easy/Code/gitcode/fxd/packages/fxd-app-browser/index.js';
+import FxdBrowser from 'fxd-app-browser';
+import { FxdSdk, getPackageInfo, myFetch, jsonDecode  } from 'fxd-sdk';
+import TurndownService from 'turndown';
+const turndownService = new TurndownService();
+import { JSDOM } from 'jsdom';
+import { Readability } from '@mozilla/readability';
+import sanitizeHtml from 'sanitize-html';
+
+export default class FxdFetch extends FxdBrowser {
+    constructor() {
+        super();
+        this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
+    }
+
+    async main(args, opts, command) {
+        this.setDefaultOpts(opts);
+        this.setDefaultCommand(command);
+        this.format = this.get('format');  
+
+        // URL
+        const url = this.get('url');
+        if (!url) this.echoError("url is required");
+        
+        const headless = this.get('headless');
+        const { page, browser } = await this.getBrowserAndMore(this.getUserDirFullPath(this.get('user')), { headless, browserType:this.get('browser') });
+
+        page.setDefaultTimeout(this.get('timeout')); // 设置超时
+        await page.goto(url);// 打开URL
+        await page.waitForLoadState( this.get('wait_type'));
+        
+        if( this.get('delay') > 0 )
+        {
+            // 等待 delay ms
+            await page.waitForTimeout(this.get('delay'));
+        }
+
+        const html = await page.content();
+        // 使用 Readability 解析 html
+        const dom = new JSDOM(html, { url } );
+        const reader = new Readability(dom.window.document);
+        const article = reader.parse();
+        const contentHtml = article.content || dom.window.document.body.innerHTML;
+        const contentText = article.textContent || dom.window.document.body.textContent;
+
+        const element = page.locator('body').first();
+        let ret;
+        switch( this.get('output') )
+        {
+            case 'raw':
+                ret = await element.innerHTML();
+                this.log(ret);
+                break;
+            case 'markdown':
+                // 使用 turndown 实现 html to markdown
+                ret = turndownService.turndown(contentHtml);
+                this.log(ret);
+                break;
+            case 'readable':
+                ret = contentHtml;
+                this.log(ret); 
+                break;
+            // 注意这个 html 是简化版本的，仅用于编写selector
+            case 'html':
+                ret = normalizeWhitespace(sanitizeHtml(await element.innerHTML(), {
+                    allowedAttributes: {
+                        '*': [ 'id', 'class', 'data-*' ]
+                    },
+                    enforceHtmlBoundary: true,
+                }));
+                this.log(ret); 
+                break;
+            case 'raw_text':
+                ret = await element.innerText();
+                this.log(ret); 
+                break;
+            case 'text':
+            default:
+                ret = contentText?.replace(/\n{2,}/g, '\n').replace(/\s{2,}/g, ' ');
+                this.log(ret); 
+        }
+
+        // 关闭浏览器
+        await browser.close();
+
+        return this.return({"content_format": this.get('output'), "content": ret});
+
+    }
+
+    async json(args, opts, command) {
+        this.setDefaultOpts(opts);
+        this.setDefaultCommand(command);
+        this.format = this.get('format');  
+        const timeout = this.get('timeout');
+
+        // URL
+        const url = this.get('url');
+        if (!url) this.echoError("url is required");
+
+        // 直接通过 fetch 获取内容
+        const response = await myFetch(url, {}, timeout);
+        const text = await response.text();
+        const content = jsonDecode(text) || text;
+        return this.return({content});
+    }
+}
+
+// 去掉连续空格和空行以节省token
+function normalizeWhitespace(html) {
+    // 将所有连续的空格替换为单个空格
+    const normalizedSpaces = html.trim().replace(/(\s){2,}/g, '$1');
+    return normalizedSpaces;
+}
+
+</package>
+<package name="fxd-app-gpt-bat" version="1.0.2" description="长文本批处理">
+import FxdApp from 'fxd-app-core';
+import { FxdSdk, getPackageInfo } from 'fxd-sdk';
+import Api2d from 'api2d';
+import fs from 'fs';
+
+export default class FxdGptBat extends FxdApp {
+    constructor() {
+        super();
+        this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
+        // ...
+    }
+
+    async main(args, opts, command, cli_path) {
+        this.setDefaultOpts(opts);
+        this.setDefaultCommand(command);
+        this.format = this.get('format');
+        
+        let content = this.get('content');
+        const char_count = parseInt(this.get('char_count'))||1000;
+        // 将 content 按句号和换行符分割成数组，然后拼接起来，保证每一段字数不超过 char_count。注意，句号和换行不能丢
+        // 先把句号后边没有换行的都加上换行
+        content = content.replace(/([。！？])([^\\n])/g, '$1\n$2');
+        // 然后按换行符分割
+        let contentArray = content.split('\n');
+        // 按字数重新组合为段
+        let newContentArray = [];
+        let temp = '';
+        for( let i = 0; i < contentArray.length; i++ )
+        {
+            let line = contentArray[i];
+            if( temp.length + line.length > char_count )
+            {
+                newContentArray.push(temp);
+                temp = '';
+            }
+            temp += line;
+        }
+        if( temp.length > 0 )
+        {
+            newContentArray.push(temp);
+        }
+
+        // 去掉空行
+        newContentArray = newContentArray.filter( item => item.length > 0 );
+
+        this.log(`分为 ${newContentArray.length} 段`);
+        // console.log(newContentArray);
+
+        try {
+            const result = [];
+            const prompt_template = this.get('prompt');
+            // 然后分段用 gpt 处理
+            for( let i = 0; i < newContentArray.length; i++ )
+            {
+                this.log(`处理第 ${i+1}/${newContentArray.length} 段`);
+                let line = newContentArray[i];
+                const prompt = prompt_template.replace('{{{content}}}', line);
+                // console.log(prompt);
+                const ai = new Api2d(this.get('ai_key'), this.get('ai_apibase'));
+                const ret = await ai.completion({
+                    messages: [{
+                        role: 'user',
+                        content: prompt
+                    }],
+                    stream: true,
+                    model: this.get('model')||'gpt-3.5-turbo',
+                    onMessage: (chars) => {
+                        this.sdk.wslog(chars, true);
+                    }
+                });
+                if( ret )
+                {
+                    this.log(ret);
+                    result.push(ret);
+                }  
+            }
+            this.log(result);
+            return this.return({ message: 'success', data: result.join('\n') });
+            
+        } catch (error) {
+            return this.echoError(error?.message);  
+        }
+    }
+
+    async file(args, opts, command) {
+        const file_path = this.get('file_path', opts, command );
+        if( !file_path )
+        {
+            return this.echoError('file_path is required');
+        }
+        if(!fs.existsSync(file_path)) return this.echoError(`file not exists: ${file_path}`);
+        const content = fs.readFileSync(file_path, 'utf-8');
+        opts.content = content;
+        return await this.main(args, opts, 'main');
+    }
+}
+
+</package>
+<package name="fxd-app-keep-live2" version="1.0.3" description="undefined">
+// import FxdBrowser from '/Users/easy/Code/gitcode/fxd/packages/fxd-app-browser/index.js';
+import FxdBrowser from 'fxd-app-browser';
+import {FxdSdk, getPackageInfo} from 'fxd-sdk'; 
+import chalk from 'chalk';
+
+
+export default class FxdKeepLive2 extends FxdBrowser {
+    constructor() {
+        super();
+        this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
+    }
+
+    async main(args, opts, command)
+    {
+        this.setDefaultOpts(opts);
+        this.setDefaultCommand(command);
+        this.format = this.get( 'format' );
+        
+        // keepLive2 --authUrl="https://passport.weibo.cn/signin/login" --refreshUrl="https://m.weibo.cn" --checkUrl="https://m.weibo.cn" --checkSelector="div.lite-iconf-msg" --timeout="5000"
+        
+        // 如果 check_url 存在，则执行 check；否则: (如果 refresh_url 存在，则执行 refresh；否则执行 auth)
+        if( this.get('check_url') )
+        {
+            const ret = await this.check(args, {...opts, format:"json", silent: true}, command);
+            // 根据检测结果，判断是刷新还是授权
+            if( ret && ret.ret ) return await this.refresh(args, opts, command);
+            else return await this.auth(args, {...opts, headless: false}, command);
+        }else if( this.get('refresh_url') )
+        {
+            return this.refresh(args, opts, command);
+        } else
+        {
+            console.log("auth_url", this.get('auth_url'));
+            if( !this.get('auth_url') ) this.echoError("auth_url is required");
+            return this.auth(args, opts, command);
+        }
+    }
+
+
+    // 打开网页，访问页面，然后等待用户关闭
+    async auth(args, opts, command) {
+        this.setDefaultOpts(opts);
+        this.setDefaultCommand(command);
+        this.format = this.get( 'format' );
+        
+        
+        // 使用 playwright 模拟浏览器打开网页，用户关闭浏览器后，自动退出
+        const url = this.get( 'auth_url' );
+        const userDirFullPath = process.env.FXD_USER_DIR || this.getUserDirFullPath(this.get('user'));
+
+        const { browser, page } = await this.getBrowserAndMore(userDirFullPath, { headless: false, browserType: this.get('browser')});
+
+        await page.goto(url);
+        // 用户关闭page后，自动退出
+        page.on('close', () => {
+            browser.close();
+            const retObj ={ 'action': 'auth', 'message': 'done', 'output':'authed manually' };
+            return this.return(retObj,opts['silent']||false);
+        });
+    }
+
+    async refresh(args, opts, command) {
+        this.setDefaultOpts(opts);
+        this.setDefaultCommand(command);
+        this.format = this.get( 'format' );
+        
+        
+        // 打开网页，访问页面，然后关闭
+        const url = this.get( 'refresh_url' );
+        const headless = this.get( 'headless' );
+        const timeout = this.get( 'timeout' );
+
+        const { browser, page } = await this.getBrowserAndMore(this.getUserDirFullPath(this.get('user')), { headless, browserType: this.get('browser') });
+
+        await page.goto(url);
+        // 设置超时
+        page.setDefaultTimeout(timeout);
+        // 等待页面加载完成
+        await page.waitForLoadState('networkidle');
+        // 关掉页面
+        await page.close();
+        // 关掉浏览器
+        await browser.close();
+
+        const retObj ={ 'action': 'refresh', 'message': 'done','output':'refreshed' };
+        this.log("页面已刷新",retObj);
+        return this.return(retObj);
+    }
+
+    async check(args, opts, command) {
+        this.setDefaultOpts(opts);
+        this.setDefaultCommand(command);
+        this.format = this.get( 'format' );
+        
+        
+        // 使用 playwright 模拟浏览器打开网页，监测selector是否包含特定文字
+        const url = this.get( 'check_url' );
+        const selector = this.get( 'check_selector' );
+        const text = this.get( 'check_text' );
+
+        const headless = this.get( 'headless' );
+        
+        const { browser, page } = await this.getBrowserAndMore(this.getUserDirFullPath(this.get('user')), { headless, browserType: this.get('browser')});
+        // 设置超时
+        page.setDefaultTimeout(this.get( 'timeout' ));
+        
+        await page.goto(url);
+        // 等待 selector 出现
+       //  await page.waitForSelector(selector, { timeout: this.get( 'timeout' )  });
+       // 等待页面加载完成
+        await page.waitForLoadState('networkidle');
+        this.log("页面加载完成");
+        // 使用 locator 获取 selector 的文字
+        const locator = page.locator(selector);
+        // 获得 locator 对应的 html
+        const count = await locator.count();
+        this.log("locator", locator, count);
+        let selectedText;
+        // 用 allTextContents 是为了获得dom包含的所有文字（包括子元素的）
+        if( count > 0 ) selectedText = (await locator.allTextContents()).join(' ');
+        this.log("selectedText", selectedText);
+        // 如果 selector 的文字包含 text，则返回 true
+        let ret = false;
+        if( text && text.length > 0 &&  selectedText.includes(text) ) ret = true;
+        if( (!text || text.length < 1) && count > 0 ) ret = true;
+        await browser.close();
+        if( this.get( 'format' ) == 'json' )
+        {
+            const retObj = {
+                url,
+                selector,
+                text,
+                count,
+                selectedText,
+                ret,
+                'output':ret?'success':'failed'
+            };
+            this.log(JSON.stringify(retObj, null, 4));
+            return this.return(retObj,opts['silent']||false);
+        }else
+        {
+            this.log("检测结果", ret ? chalk.green('成功') : chalk.red('失败'));
+        }
+    }
+}
+</package>
+<package name="fxd-app-rss-fetch" version="1.0.4" description="解析RSS并返回是否有更新">
+import FxdApp from 'fxd-app-core';
+import { FxdSdk, getPackageInfo } from 'fxd-sdk';
+import { extract } from '@extractus/feed-extractor';
+import dayjs from 'dayjs';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+
+export default class FxdRssFetch extends FxdApp {
+    constructor() {
+        super();
+        this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
+        // ...
+    }
+
+    async main(args, opts, command, cli_path) {
+        this.setDefaultOpts(opts);
+        this.setDefaultCommand(command);
+        this.format = this.get('format');
+        const proxyObject = this.get('proxy') ? {agent:new HttpsProxyAgent(this.get('proxy'))} : {};
+
+        try {
+            const url = this.get('url');
+            const feed = await extract(url, {
+                getExtraEntryFields: (feedEntry) => {
+                    // console.log("feedEntry",feedEntry);
+                    return { 'content': feedEntry.content && feedEntry.content['#text'] ? turndownService.turndown(feedEntry.content['#text']) : "" };
+                }
+            },{
+                signal: AbortSignal.timeout(this.get('timeout')),
+                ...proxyObject
+            });
+
+            if( this.get('only_changed') && feed.entries && feed.entries.length > 0)
+            {
+                const urlSHA = this.sdk.sha1(`rss-fetch:${url}`);
+                // console.log("urlSHA", urlSHA);
+                const newFeedIdArray = [];
+                const newEntries = [];
+                const sentFeeds = await this.sdk.getValue(urlSHA)||[];
+                // 如果 feed.entries 的 item.id 不在 sentFeeds 里，则加入 newEntries；否则加入 oldEntries
+                for( const entry of feed.entries )
+                {
+                    if( !sentFeeds.includes(entry.id) )
+                    {
+                        newEntries.push(entry);
+                        newFeedIdArray.push(entry.id);
+                    }
+                }
+
+                // console.log("newFeedIdArray", newFeedIdArray);
+
+                if( newEntries.length > 0 )
+                {
+                    feed.entries = newEntries;
+                    feed.changed = true;
+                    await this.sdk.setValue(urlSHA, [...newFeedIdArray,...sentFeeds]);
+
+                    if( this.get('sendkey') )
+                    {
+                        let markdown = ``;
+                        for( const entry of newEntries )
+                        {
+                            markdown += `### ${entry.title}\n\n${entry.description}\n\n${dayjs(entry.pubDate).format('YYYY-MM-DD HH:mm:ss')}\n\n[查看网页](${entry.link})\n\n---\n\n`;
+                        }
+                        this.sdk.scSend(`${feed.title}有更新`, markdown, this.get('sendkey'));
+                    }
+
+                }else
+                {
+                    feed.entries = [];
+                    feed.changed = false;
+                }
+            }
+
+            feed.only_changed = this.get('only_changed');
+            const result = {feed, output: feed.changed ? 'changed' : 'unchanged'};
+
+            this.log(JSON.stringify(result, null, 4));
+            return this.return(result);
+            
+        } catch (error) {
+            this.echoError(error);    
+        }
+
+        
+        
+    }
+}
+
+</package>
+<package name="fxd-app-screenshot" version="1.0.2" description="对传入的url截图">
+import FxdBrowser from 'fxd-app-browser';
+import { FxdSdk, getPackageInfo } from 'fxd-sdk';
+import path from 'path';
+import fs from 'fs';
+
+export default class FxdScreenshot extends FxdBrowser {
+    constructor() {
+        super();
+        this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
+        // ...
+    }
+
+    async main(args, opts, command, cli_path) {
+        this.setDefaultOpts(opts);
+        this.setDefaultCommand(command);
+        this.format = this.get('format');
+        
+        const url = this.get('url');
+        // 不存在则使用当前目录
+        const savePath = this.get('save_path') || path.join(process.cwd(), 'screenshot.png');
+        const userDirFullPath = process.env.FXD_USER_DIR || this.getUserDirFullPath(this.get('user'));
+        const { browser, page, context } = await this.getBrowserAndMore(userDirFullPath, { headless: this.get('headless'), browserType: this.get('browser'), deviceScaleFactor: this.get('scale')});
+        // timeout
+        page.setDefaultTimeout(this.get('timeout'));
+
+        await page.setViewportSize({ 
+            width:this.get('width'), 
+            height:this.get('height')
+        });
+        await page.goto(url);
+        await page.waitForLoadState(this.get('wait_type'));
+        await page.screenshot({ 
+            path: savePath, 
+            fullPage: this.get('full_page')
+        });
+        await browser.close();
+        // 检查文件是否存在
+        return fs.existsSync(savePath) ? this.return({ action: 'screenshot', message: 'done', output: savePath }) : this.return({ action: 'screenshot', message: 'error', output: 'screenshot failed' });
+    }
+}
+
+</package>
+<package name="fxd-app-search" version="1.0.8" description="根据传入的query搜索网页，返回搜索结果。支持用sites指定网站搜索">
+import FxdBrowser from 'fxd-app-browser';
+import { FxdSdk, getPackageInfo } from 'fxd-sdk';
+import { JSDOM } from 'jsdom';
+import { Readability } from '@mozilla/readability';
+import TurndownService from 'turndown';
+const turndownService = new TurndownService();
+
+
+export default class FxdDemo extends FxdBrowser {
+    constructor() {
+        super();
+        this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
+        // ...
+    }
+
+    async main(args, opts, command) {
+        this.setDefaultOpts(opts);
+        this.setDefaultCommand(command);
+        this.format = this.get('format');
+        const query = this.get('query');
+        const sites = this.get('sites')?this.get('sites').split(','):[];
+        const headless = this.get('headless');
+        const { page, browser } = await this.getBrowserAndMore(this.getUserDirFullPath(this.get('user')), { headless });
+        page.setDefaultTimeout(this.get('timeout')); // 设置超时
+
+        const url = 'https://www.google.com/search?q=' + encodeURIComponent(sites ? sites.map( site => `site:${site}` ).join(' ') + ' filetype:md OR filetype:html ' + query : ' filetype:md OR filetype:html ' + query);
+        await page.goto(url);// 打开URL
+        await page.waitForLoadState( this.get('wait_type')); 
+
+        let results_all = await page.evaluate(() => {
+            let data = [];
+            let elements = document.querySelectorAll('.g');
+            for (var element of elements) {
+                let title = element.querySelector('a').innerText?.trim();
+                let link = element.querySelector('a').href;
+                let snippet = element.innerText.trim().split('\n').pop();
+                data.push({title, link, snippet});
+            }
+            return data;
+        });
+        // 等待1秒
+        await page.waitForTimeout(1000);
+        await browser.close();
+
+        let results = results_all.slice(0,this.get("result_limit"));
+        // 去掉 link 重复的
+        results = results.filter((item, index, self) =>
+            index === self.findIndex((t) => (
+                t.link === item.link.trim()
+            ))
+        );
+        this.log(results);
+        
+        if( !this.get("result_extend") ) return this.return({results});
+        
+        let extended_results = [];
+        for (let result of results) {
+            let markdown = await this.fetch(result.link, this.get('result_length'));
+            if (markdown) {
+                result.markdown = markdown;
+                extended_results.push(result);
+            }
+        }
+        this.log(extended_results);
+        return this.return({results:extended_results});
+
+    }
+
+    async fetch(url, length = 3000, timeout = 20*1000)
+    {
+        // 首先验证 url 是否是一个合法的 url
+        if( !url.match(/^https?:\/\//) ) return '';
+        
+        try {
+            const { page, browser } = await this.getBrowserAndMore(this.getUserDirFullPath(this.get('user')), { headless: this.get('headless') });
+            page.setDefaultTimeout(timeout); // 设置超时
+
+            // page 超时后关掉浏览器
+            page.on('pageerror', async (err) => {
+                await browser.close();
+                this.log(err);
+                return '';
+            });
+
+            await page.goto(url);// 打开URL
+            await page.waitForLoadState( this.get('wait_type')); 
+            const html = await page.content();
+            await browser.close();
+            // 使用 Readability 解析 html
+            const dom = new JSDOM(html, { url } );
+            const reader = new Readability(dom.window.document);
+            const article = reader.parse();
+            let markdown = false;
+            
+            if (article && article.content) {
+                markdown = turndownService.turndown(article.content);
+            } else {
+                if (dom.window.document) 
+                {
+                    markdown = turndownService.turndown(dom.window.document);
+                }
+            }
+            
+            return markdown ? ( length ? markdown.substring(0, length) : markdown) : '';
+        } catch (error) {
+            return '';
+        }
+    }
+}
+
+</package>
+<package name="fxd-app-translate" version="1.0.5" description="长文翻译">
+import FxdApp from 'fxd-app-core';
+import { FxdSdk, getPackageInfo } from 'fxd-sdk';
+import FxdGptBat from 'fxd-app-gpt-bat';
+import Api2d from 'api2d';
+import fs  from 'fs';
+
+export default class FxdTranslate extends FxdApp {
+    constructor() {
+        super();
+        this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
+        // ...
+    }
+
+    async main(args, opts, command, cli_path) {
+        this.setDefaultOpts(opts);
+        this.setDefaultCommand(command);
+        this.format = this.get('format');
+        const content = this.get('content');
+        let summary;
+
+        if( this.get('summarize_first') )
+        {
+            // 首先通过 gpt 对 content 进行摘要
+            const prompt1 = `你是世界一流的语言学家，正在翻译一篇长文。由于篇幅较长，每次只翻译其中一部分。为了保持翻译的连贯性，请先阅读全文，并编写一个翻译提示，注明文章的主题和内容，涉及什么领域的专有名词。全文如下：\n\n${content}，不要翻译全文，先撰写翻译提示：`;
+
+            const ai = new Api2d(this.get('ai_key'), this.get('ai_apibase'));
+            summary = await ai.completion({
+                messages: [{
+                    role: 'user',
+                    content: prompt1
+                }],
+                stream: true,
+                model: this.get('model')||'gpt-3.5-turbo-16k',
+                onMessage: (chars) => {
+                    this.sdk.wslog(chars, true);
+                }
+            });
+        }
+        
+        const translate_tips = summary ?  `全文的翻译提示：${summary}` : '';
+        if(translate_tips) this.log(translate_tips);
+
+        const gpt_bat = new FxdGptBat();
+        return await gpt_bat.main(
+            null,
+            {
+                content: content,
+                char_count: this.get('char_count'),
+                prompt: `你是世界一流的语言学家，正在翻译一篇长文中的一段。${translate_tips} 请翻译，${this.get('from_lang')}：\n\n{{{content}}}，${this.get('to_lang')}：`,
+                ai_key: this.get('ai_key')||"",
+                ai_apibase: this.get('ai_apibase')||"https://oa.api2d.net",
+                ai_model: this.get('ai_model')||'gpt-3.5-turbo-16k',
+                format: this.get('format'),
+            },
+            'main',
+        );
+    }
+
+    async file(args, opts, command) {
+        const file_path = this.get('file_path', opts, command );
+        if( !file_path )
+        {
+            return this.echoError('file_path is required');
+        }
+        if(!fs.existsSync(file_path)) return this.echoError(`file not exists: ${file_path}`);
+        const content = fs.readFileSync(file_path, 'utf-8');
+        opts.content = content;
+        return await this.main(args, opts, 'main');
+    }
+}
+
+</package>
+<package name="fxd-app-weibo-live" version="1.0.0" description="刷新微博页面，保持登录态">
+import { FxdSdk, getPackageInfo } from 'fxd-sdk';
+import FxdKeepLive2 from 'fxd-app-keep-live2';
+
+
+export default class FxdWeiboLive extends FxdKeepLive2 {
+    constructor() {
+        super();
+        this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
+        // ...
+    }
+
+    async main(args, opts, command, cli_path) {
+        return this.help();
+    }
+
+    async auth(args, opts, command) {
+        // 指定 authurl
+        opts['auth_url'] = 'https://m.weibo.cn';
+        return super.auth(args, opts, command);
+    }
+
+    async refresh(args, opts, command) {
+        // 指定 refreshurl
+        opts['refresh_url'] = 'https://m.weibo.cn';
+        return super.refresh(args, opts, command);
+    }
+
+    async check(args, opts, command) {
+        // 指定 checkurl
+        opts['check_url'] = 'https://m.weibo.cn/profile';
+        opts['check_selector'] = 'div.profile-header';
+        return super.check(args, opts, command);
+    }
+}
+
+</package>
+<package name="fxd-app-weibo-publish" version="1.0.13" description="undefined">
+import FxdBrowser from 'fxd-app-browser';
+import { FxdSdk, getPackageInfo } from 'fxd-sdk';
+import dayjs from 'dayjs';
+import path from 'path';
+import fs from 'fs';
+import download from 'download';
+
+export default class FxdWeiboPublish extends FxdBrowser {
+    constructor() {
+        super();
+        this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
+    }
+
+    async publish(args, opts, command) {
+        this.setDefaultOpts(opts);
+        this.setDefaultCommand(command);
+        this.format = this.get('format');
+
+        const url = 'https://m.weibo.cn/compose/'; // 微博发布页面URL
+        const content = this.get('content') // 从命令行选项中获取微博内容
+        let images  = this.get('images') ;
+        images = images ? images.split(',') : []// 从命令行选项中获取微博图片
+        
+        const self_only = this.get('self_only') // 从命令行选项中获取微博图片
+    
+        if (!content) {
+            console.error('微博内容不能为空');
+            return;
+        }
+    
+        const { browser, page } = await this.getBrowserAndMore(this.getUserDirFullPath(this.get('user')), { headless: this.get('headless'), browserType: this.get('browser')});
+    
+        try {
+            await page.goto(url, { waitUntil: this.get('wait_type') });
+            await page.waitForSelector('textarea');
+            await page.evaluate( (content) => {
+            document.querySelector('textarea').value = content;
+            document.querySelector('textarea').dispatchEvent(new Event('input'));
+            }, content);
+
+            // 图片
+            if( self_only )
+            {
+                const element = await page.waitForSelector('footer div.visible');
+                await element.click();
+                await element.click();      
+            }
+
+            if( images.length > 0 )
+            {
+                // 确保临时目录存在
+                const tmp_dir = path.join( "/tmp", this.sdk.name );
+                if( !fs.existsSync(tmp_dir) ){
+                    fs.mkdirSync(tmp_dir);
+                }
+                this.log("tmp_dir", tmp_dir);
+                // const upload_input = await page.waitForSelector('input#selectphoto', { visible: false });
+                for (let i = 0; i < images.length; i++) {
+                    let image = images[i].trim();
+                    this.log("deal with image", image)
+                    // 如果是网络图片，先下载到本地
+                    if( image.startsWith('http') )
+                    {
+                        // 根据url获得文件扩展名
+                        const ext = path.extname(image)??'.jpg';
+                        this.log( "ext", ext );
+                        if( ext == '.mp4' ) continue;
+                        
+                        const filename = `${dayjs().format('YYYYMMDDHHmmss')}_${i}${ext}`;
+                        this.log("referrer",new URL(image).origin )
+                        await download(image, tmp_dir, {
+                            filename,
+                            headers:
+                            {
+                                Referer: new URL(image).origin
+                            }
+                        });
+                        image = path.join(tmp_dir, filename);
+                        this.log("local image path", image);
+                    }
+
+                    await page.setInputFiles('input#selectphoto', image);
+                    // 等待图片上传完成
+                    // 一张图等待5秒
+                    await page.waitForTimeout(1000*5);
+                }    
+            }
+            await page.click('.m-send-btn');
+            
+            // 监测浏览器的URL是否变化
+            // await page.waitForNavigation({ timeout: this.get('timeout'), waitUntil: this.get('wait_type') });
+            await page.waitForURL('about:blank', { timeout: this.get('timeout') });
+
+            // 转向到用户主页查看是否发布成功
+            await page.goto('https://m.weibo.cn/profile', { waitUntil: this.get('wait_type') });
+
+            await page.waitForSelector('.wb-item span.time', { timeout: 1000*10 });
+            const weiboTextArray = await page.evaluate(() => {
+                let data = [];
+                let elements = document.querySelectorAll('.wb-item');
+                for (var element of elements) {
+                    data.push( element.innerText );
+                }
+                return data;
+            });
+            await browser.close();
+            let checked = false;
+            // console.log(ret);
+            for( const weiboText of weiboTextArray )
+            {
+                // 检查其中是否包含 刚刚 和微博正文的前5个字
+                if( weiboText.includes('刚刚') && weiboText.includes(String(content)?.substring(0,5)) )
+                {
+                    checked = true;
+                    break;
+                }
+            }
+
+
+            this.log('微博发布成功');
+            return this.return({ 'action': 'publish', 'message': 'done', 'output': String(content)?.substring(0,100) + '...', 'checked': checked});
+        } catch (error) {
+            console.error('发布微博时出错：', error);
+            await browser.close();
+            return this.return({ 'action': 'publish', 'message': 'error', 'error': error, 'output' : error.message });
+        }
+    }
+
+    async main(args, opts, command) {
+        return await this.publish(args, opts, command);
+    }
+}
+
+</package>
+<package name="fxd-app-x-publish" version="1.0.0" description="自动发布推文">
+import FxdBrowser from 'fxd-app-browser';
+import { FxdSdk, getPackageInfo } from 'fxd-sdk';
+import dayjs from 'dayjs';
+import path from 'path';
+import fs from 'fs';
+import download from 'download';
+import { renderText } from './render.js';
+
+
+export default class FxdXPublish extends FxdBrowser {
+    constructor() {
+        super();
+        this.sdk = new FxdSdk(getPackageInfo(import.meta.url));
+        // ...
+    }
+
+    async publish(args, opts, command) {
+        this.setDefaultOpts(opts);
+        this.setDefaultCommand(command);
+        this.format = this.get('format');
+
+        const url = 'https://twitter.com/compose/post'; 
+        let content = this.get('content');
+        let long_content = false;
+        // 如果内容超过140个字符，截断
+        if( content.length > 139 )
+        {
+            long_content = content;
+            content = content.substr(0, 139)+"…";
+        }
+
+        let images  = this.get('images') ;
+        images = images ? images.split(',') : []
+        
+        if (!content) {
+            console.error('推文内容不能为空');
+            return;
+        }
+    
+        const { browser, page } = await this.getBrowserAndMore(this.getUserDirFullPath(this.get('user')), { 
+            headless: this.get('headless'), 
+            browserType: this.get('browser'),
+            userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36'
+        });
+
+        try {
+            await page.goto(url, { waitUntil: this.get('wait_type') });
+
+            // 等待输入图层
+            await page.waitForSelector('[data-testid="tweetTextarea_0"]', {
+                state:'attached'    
+            });
+            // 点击输入图层
+            await page.click('[data-testid="tweetTextarea_0"]');
+            // 输入内容
+            await page.type('[data-testid="tweetTextarea_0"]', content);
+
+            
+
+            if( images.length > 0 || long_content )
+            {
+                // 确保临时目录存在
+                const tmp_dir = path.join( "/tmp", this.sdk.name );
+                if( !fs.existsSync(tmp_dir) ){
+                    fs.mkdirSync(tmp_dir);
+                }
+                this.log("tmp_dir", tmp_dir);
+
+                if( long_content )
+                {
+                    // 将文字生成图片。然后将链接放入images数组。
+                    const filename = `${dayjs().format('YYYYMMDDHHmmss')}_long_content.jpg`;
+                    const image = path.join(tmp_dir, filename);
+
+                    await renderText({
+                        // 将换行替换为 <br />
+                        text: long_content.replace(/\n/g, '<br />'),
+                        output: image,
+                        width: 920,
+                        style: {
+                          fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB','Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji','Segoe UI Emoji', 'Segoe UI Symbol'",
+                          fontSize: 48,
+                          lineHeight: 1.8,
+                          fontWeight: 'lighter',
+                          padding: 32
+                        }
+                      })
+    
+                    // 将 image 添加到 images 列表开头
+                    images.unshift(image);
+                }
+
+                // 如果 images 元素超过4个，只保留前4个
+                images = images.slice(0, 4);
+
+                for (let i = 0; i < images.length; i++) {
+                    let image = images[i].trim();
+                    this.log("deal with image", image)
+                    // 如果是网络图片，先下载到本地
+                    if( image.startsWith('http') )
+                    {
+                        // 根据url获得文件扩展名
+                        const ext = path.extname(image)??'.jpg';
+                        this.log( "ext", ext );
+                        if( ext == '.mp4' ) continue;
+                        
+                        const filename = `${dayjs().format('YYYYMMDDHHmmss')}_${i}${ext}`;
+                        this.log("referrer",new URL(image).origin )
+                        await download(image, tmp_dir, {
+                            filename,
+                            headers:
+                            {
+                                Referer: new URL(image).origin
+                            }
+                        });
+                        image = path.join(tmp_dir, filename);
+                        this.log("local image path", image);
+                    }
+
+                    await page.setInputFiles('[data-testid="fileInput"]', image);
+                    // 等待图片上传完成
+                    // 一张图等待5秒
+                    await page.waitForTimeout(1000*5);
+                }    
+            }
+            // 发布内容
+            await  page.click('[data-testid="tweetButton"]');
+            
+            await page.waitForTimeout(1000*5);
+            // AppTabBar_Profile_Link
+            await page.click('[data-testid="AppTabBar_Profile_Link"]');
+            // 等待页面转向
+            await page.waitForURL();
+            // wait for [data-testid="cellInnerDiv"]
+            await page.waitForSelector('[data-testid="cellInnerDiv"]', {
+                timeout: 1000*10
+            });
+            // 获取tweetTextArray 
+            const tweetTextArray = await page.evaluate(() => {
+                let data = [];
+                let elements = document.querySelectorAll('[data-testid="cellInnerDiv"]');
+                for (var element of elements) {
+                    data.push( element.innerText );
+                }
+                return data;
+            });
+            
+            await browser.close();
+            let checked = false;
+            // console.log("tweetTextArray",tweetTextArray);
+            for( const tweetText of tweetTextArray )
+            {
+                // 检查其中是否包含 刚刚 和推文正文的前5个字
+                if( tweetText.includes(String(content)?.substring(0,5)) )
+                {
+                    checked = true;
+                    break;
+                }
+            }
+
+            this.log('推文发布成功');
+            return this.return({ 'action': 'publish', 'message': 'done', 'output': String(content)?.substring(0,100) + '...', 'checked': checked});
+        } catch (error) {
+            console.error('发布推文时出错：', error);
+            await browser.close();
+            return this.return({ 'action': 'publish', 'message': 'error', 'error': error, 'output' : error.message });
+        }
+    }
+
+    async main(args, opts, command) {
+        return await this.publish(args, opts, command);
+    }
+
+    async test(args, opts, command) {
+        const long_content = `终于把无感录屏这事搞定了。这事我觉得挺重要，因为它可以在你工作或者写开源项目的时候直接把过程录制下来，只需要再剪辑一下，直接就可以作为副产品了。  不过我的电脑配置不太高，OBS跑起来本身就挺费资源，要是再同时把 docker/android studio/xcode开着（比如开发Flutter应用的时候），就会很卡。  之前尝试通过vnc让另外一台电脑登录进来录制，但是对被录制的电脑影响还是蛮大的。最后还是得靠硬件方案，花600多买了个支持4K录制和环出的视频采集卡，终于搞定了。  之前测试的时候买过小几百块的那种，录下来清晰度都不行，还是一分钱一分货啊`;
+        await renderText({
+            // 将换行替换为 <br />
+            text: long_content.replace(/\n/g, '<br />'),
+            output: '/tmp/long_test.jpg',
+            width: 920,
+            style: {
+              fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB','Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji','Segoe UI Emoji', 'Segoe UI Symbol'",
+              fontSize: 48,
+              lineHeight: 1.8,
+              fontWeight: 'lighter',
+              padding: 32
+            }
+          })
+    }
+
+    
+}
+
+</package>

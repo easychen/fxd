@@ -1,6 +1,6 @@
 {
   "name": "fxd-sdk",
-  "version": "1.0.66",
+  "version": "1.0.67",
   "main": "index.js",
   "license": "SEE LICENSE IN LICENSE.txt",
   "type": "module",

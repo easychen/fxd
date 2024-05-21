@@ -1,0 +1,88 @@
+{
+  "name": "fxd-app-codegen",
+  "description": "自动生成fxd app代码",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "type": "module",
+  "meta": {
+    "for": "fxd",
+    "author_uid": 0,
+    "args": {
+      "main": {
+        "url": {
+          "name": "url",
+          "description": "要打开的页面 URL",
+          "type": "string",
+          "required": false,
+          "default": "https://f.ftqq.com",
+          "example": "https://www.example.com"
+        }
+      },
+      "gen":
+      {
+        "howto":
+        {
+          "name": "howto",
+          "description": "描述应用功能，以及如何生成",
+          "type": "string",
+          "required": false,
+          "example": "从由wordpress架设的ft07.com获取最新的rss"
+        },
+        "package_name":
+        {
+          "name": "package_name",
+          "description": "应用包名",
+          "type": "string",
+          "required": true,
+          "example": "fxd-app-test"
+        },
+        "parent_package":
+        {
+          "name": "parent_package",
+          "description": "父类对应的包名",
+          "type": "string",
+          "required": true,
+          "example": "fxd-app-core"
+        }
+      },
+      "indexing":
+      {
+        "indexType":
+        {
+          "name": "type",
+          "description": "索引类型",
+          "type": "string",
+          "required": false,
+          "example": "intro",
+          "default": "intro",
+          "enum": ["intro", "code", "sdk"]
+        }
+      }
+    },
+    "output": {
+      "main": {
+        "success": {
+          "result": {
+            "name": "result",
+            "description": "返回结果"
+          }
+        }
+      },
+      "fail": {
+        "error": {
+          "name": "error",
+          "type": "string",
+          "description": "错误信息",
+          "example": "搜索过程中发生错误"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "fxd-app-core": "^1.0.47",
+    "fxd-sdk": "^1.0.67",
+    "inquirer": "^9.2.22",
+    "vectra": "^0.7.6"
+  }
+}
