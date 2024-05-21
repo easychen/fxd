@@ -95,14 +95,14 @@ export class FxdSdk {
 
     }
 
-    async aiStream( messages, data = null, model= 'gpt-3.5-turbo' )
+    async aiStream( messages, data = null, model= null )
     {
         return await this.aiChat( messages, data, model, (chars, char) => {
             this.wslog(chars, true);
         });
     }
 
-    async aiChat( messages, data = null, model= 'gpt-3.5-turbo', callback = null )
+    async aiChat( messages, data = null, model= null, callback = null )
     {
         if( !this.ai )
         {
@@ -112,6 +112,7 @@ export class FxdSdk {
             {
                 this.ai = new Api2d(settings.DEFAULT_AI_CHAT_KEY, settings.DEFAULT_AI_CHAT_BASEURL || null);
             }
+            if( !model ) model = settings.DEFAULT_AI_CHAT_MODEL || 'gpt-3.5-turbo'
         }
         if( !this.ai ) return { error: 'ai api not set' };
         
